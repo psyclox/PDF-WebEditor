@@ -305,7 +305,21 @@ body {
     border-radius: var(--radius);
     transition: var(--transition);
     font-size: 12px;
+    display: flex;
+    /* Ensure flex */
+    align-items: center;
+    /* Vertical center */
+    gap: 8px;
+    /* Space between icon and text */
     white-space: nowrap;
+}
+
+.rbtn-icon-sm {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
 }
 
 .ribbon-btn-sm:hover {
@@ -411,6 +425,30 @@ body {
 }
 
 /* Input Fields in Ribbon */
+/* Color Input Styling */
+.ribbon-panel input[type="color"] {
+    -webkit-appearance: none;
+    border: none;
+    width: 50px;
+    /* Wider swatch */
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    border-radius: var(--radius);
+    overflow: hidden;
+    /* Clip rounded corners */
+}
+
+.ribbon-panel input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.ribbon-panel input[type="color"]::-webkit-color-swatch {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+}
+
 .ribbon-panel input[type="number"],
 .ribbon-panel input[type="text"] {
     background: var(--bg-tertiary);
