@@ -231,6 +231,26 @@ body {
     padding: 2px 0;
 }
 
+.group-content.stack {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+}
+
+.group-content.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    width: 100%;
+}
+
+/* Ensure buttons in stack align left */
+.group-content.stack .ribbon-btn-sm {
+    justify-content: flex-start;
+    width: 100%;
+    text-align: left;
+}
+
 .ribbon-sep {
     width: 1px;
     background: var(--border-color);
@@ -309,13 +329,14 @@ body {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 8px;
+    padding: 0 8px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     cursor: pointer;
     min-width: 150px;
-    height: 26px;
+    height: 28px;
+    /* Standard Height */
     color: var(--text-primary);
     font-size: 12px;
     transition: var(--transition);
@@ -332,19 +353,22 @@ body {
 }
 
 .size-select {
-    padding: 3px 4px;
+    padding: 0 4px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     color: var(--text-primary);
     width: 52px;
-    height: 26px;
+    height: 28px;
+    /* Standard Height */
     font-size: 12px;
 }
 
 .fmt-btn {
-    width: 28px;
-    height: 26px;
+    width: 32px;
+    /* Slightly wider */
+    height: 28px;
+    /* Standard Height */
     background: transparent;
     border: 1px solid transparent;
     color: var(--text-primary);
@@ -386,17 +410,72 @@ body {
     cursor: pointer;
 }
 
-.color-wrap input[type="color"] {
-    width: 20px;
-    height: 20px;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    padding: 0;
-    background: transparent;
+/* Input Fields in Ribbon */
+.ribbon-panel input[type="number"],
+.ribbon-panel input[type="text"] {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: var(--radius);
+    padding: 0 6px;
+    /* Vertical centering */
+    font-size: 12px;
+    width: 60px;
+    /* Fixed width for better alignment */
+    height: 28px;
+    /* Standard Height */
+    outline: none;
+    transition: var(--transition);
 }
 
-/* Paragraph */
+.ribbon-panel input[type="number"]:focus,
+.ribbon-panel input[type="text"]:focus {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+/* Range Sliders */
+.ribbon-panel input[type="range"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100px;
+    /* Wider sliders */
+    height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    outline: none;
+    margin: 8px 0;
+}
+
+.ribbon-panel input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--text-secondary);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.ribbon-panel input[type="range"]::-webkit-slider-thumb:hover {
+    background: var(--accent);
+    transform: scale(1.1);
+}
+
+/* Group Labels */
+.group-label {
+    font-size: 11px;
+    /* Readable size */
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: auto;
+    padding-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* Paragraph Group */
 .para-group {
     flex-direction: column;
     gap: 4px;
@@ -405,13 +484,16 @@ body {
 .para-row {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
+    /* Increased gap */
 }
 
 .mini-label {
-    font-size: 10px;
+    font-size: 11px;
+    /* Readable */
     color: var(--text-muted);
-    margin-left: 6px;
+    margin-left: 8px;
+    /* More spacing */
 }
 
 .mini-select {
@@ -420,20 +502,23 @@ body {
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     color: var(--text-primary);
-    font-size: 11px;
-    width: 55px;
-    height: 24px;
+    font-size: 12px;
+    width: 60px;
+    height: 28px;
+    /* Standard Height */
 }
 
-.mini-input {
-    padding: 2px 4px;
+/* Specific selector to override generic ribbon input */
+.ribbon-panel .mini-input {
+    padding: 2px 6px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     color: var(--text-primary);
-    font-size: 11px;
-    width: 48px;
-    height: 24px;
+    font-size: 12px;
+    width: 60px;
+    height: 28px;
+    /* Standard Height */
 }
 
 /* Styles */
@@ -442,7 +527,12 @@ body {
 }
 
 .style-preset {
-    padding: 6px 14px;
+    padding: 0 12px;
+    /* Use line-height/height for centering */
+    height: 28px;
+    /* Standard Height */
+    line-height: 26px;
+    /* 28px - 2px border */
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
@@ -451,6 +541,8 @@ body {
     font-size: 12px;
     transition: var(--transition);
     white-space: nowrap;
+    display: flex;
+    align-items: center;
 }
 
 .style-preset:hover {
@@ -459,7 +551,8 @@ body {
 }
 
 .style-preset.heading {
-    font-size: 16px;
+    font-size: 14px;
+    /* Standardized */
     font-weight: 700;
     color: var(--accent);
 }
@@ -467,35 +560,46 @@ body {
 /* Properties */
 .props-group {
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
+    justify-content: center;
+    /* Center vertically */
 }
 
 .prop-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
+    gap: 8px;
+    font-size: 12px;
+    height: 30px;
+    /* Slightly taller containers */
 }
 
 .prop-row label {
-    min-width: 60px;
+    min-width: 80px;
+    /* Increased for better alignment */
     color: var(--text-secondary);
+    text-align: right;
+    padding-right: 6px;
 }
 
 .prop-row input[type="range"] {
     width: 100px;
     height: 4px;
     accent-color: var(--accent);
+    margin: 0;
 }
 
 .prop-val {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-muted);
-    min-width: 30px;
+    min-width: 32px;
+    text-align: right;
 }
 
 .tool-select {
-    padding: 4px 8px;
+    padding: 0 8px;
+    height: 28px;
+    /* Standard Height */
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
@@ -505,14 +609,19 @@ body {
 
 /* Margin Presets */
 .margin-preset {
-    padding: 6px 12px;
+    padding: 0 12px;
+    height: 28px;
+    /* Standard Height */
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     color: var(--text-primary);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 12px;
     transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .margin-preset:hover {
@@ -542,7 +651,8 @@ body {
 
 .font-search {
     width: 100%;
-    padding: 10px 14px;
+    padding: 6px 14px;
+    height: 36px;
     background: var(--bg-primary);
     border: none;
     border-bottom: 1px solid var(--border-color);

@@ -206,17 +206,14 @@ const Canvas = {
             column-count:${el.columnCount || 'auto'};column-gap:24px;
             background:${el.backgroundColor || 'transparent'};padding:${el.padding || 8}px;
             border:${el.borderWidth || 0}px solid ${el.borderColor || 'transparent'};
-            outline:none;overflow:hidden;box-sizing:border-box;
+            outline:none;overflow:visible;box-sizing:border-box;
             border-radius:${el.borderRadius || 0}px;
-            cursor:move;user-select:none;pointer-events:none;
+            cursor:move;user-select:none;
         `;
 
-        // If unlocked, allow pointer events so the element itself (opaque bg) captures the click
-        if (!el.locked) {
-            div.style.pointerEvents = 'auto';
-        } else {
-            div.style.pointerEvents = 'auto';
-        }
+        // CRITICAL: Unlocked opaque elements MUST capture pointer events to be selected/dragged
+        // Locked elements should pass through to allow rubber-band selection on background
+        div.style.pointerEvents = el.locked ? 'none' : 'auto';
 
         // Default: NOT editable — double-click to edit
         div.contentEditable = false;

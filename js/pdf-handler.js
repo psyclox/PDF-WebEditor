@@ -117,54 +117,120 @@ const PDFHandler = {
                 lines[y].push(item);
             });
 
-            // Process each line
-            Object.keys(lines).forEach(yKey => {
-                // Sort by X coordinate
+            // 1. Collect all lines first
+            const pool = [];
+            const sortedYKeys = Object.keys(lines).sort((a, b) => parseFloat(b) - parseFloat(a));
+
+            sortedYKeys.forEach(yKey => {
                 const items = lines[yKey].sort((a, b) => a.transform[4] - b.transform[4]);
 
-                // Construct text with spacing
+                // Construct text line
                 let textArr = [];
                 let prevEnd = -1;
-
                 items.forEach(item => {
-                    // If gap > 3 points, add space
-                    if (prevEnd !== -1 && (item.transform[4] - prevEnd > 4)) {
-                        textArr.push(' ');
-                    }
+                    if (prevEnd !== -1 && (item.transform[4] - prevEnd > 4)) textArr.push(' ');
                     textArr.push(item.str);
                     prevEnd = item.transform[4] + item.width;
                 });
-
-                const text = textArr.join('');
-                if (!text.trim()) return;
+                const text = textArr.join('').trim();
+                if (!text) return;
 
                 const first = items[0];
                 const last = items[items.length - 1];
-
-                // Calculate position and size in pixels
                 const fontSizePt = (first.height || 12);
-                const fontSizePx = Math.max(10, Math.ceil(fontSizePt * scale)); // Use Ceil for better fit
-
+                const fontSizePx = Math.max(10, Math.floor(fontSizePt * scale));
                 const x = Math.round(first.transform[4] * scale);
-                // Improved Top calculation: Align baseline better
-                // PDF Y is bottom-left. HTML Y is top-left.
-                const y = Math.round((pageHeight - first.transform[5] - fontSizePt * 0.75) * scale);
+                // HTML Top Y
+                const y = Math.round((pageHeight - first.transform[5] - fontSizePt * 0.80) * scale);
+                const width = Math.round(((last.transform[4] + last.width) - first.transform[4]) * scale) + 16;
+                const height = fontSizePx; // Initial line height estimate
 
-                const width = Math.round(((last.transform[4] + last.width) - first.transform[4]) * scale) + 20; // Extra width buffer
+                pool.push({ text, x, y, width, fontSizePx, height });
+            });
 
-                // Height needs to accommodate descenders and line-height
-                const height = fontSizePx * 1.5;
+            // 2. Block Layout Engine (Professional Grouping)
+            const blocks = [];
+            const processed = new Set();
 
-                const el = Elements.createTextBox(x, y, width, height, text);
-                el.content = `<p>${text}</p>`;
-                el.fontSize = fontSizePx;
-                el.fontFamily = 'Inter'; // Default font
-                el.backgroundColor = '#ffffff'; // OPAQUE WHITE to cover original text
-                el.padding = 4; // Padding to prevent text touching edges
-                el.locked = false; // Editable!
-                el.borderWidth = 0; // No border by default
+            // Sort pool top-down, left-right
+            pool.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+
+            for (let i = 0; i < pool.length; i++) {
+                if (processed.has(i)) continue;
+
+                // Start new Block
+                const root = pool[i];
+                const block = {
+                    lines: [root.text],
+                    x: root.x,
+                    y: root.y,
+                    width: root.width,
+                    fontSizePx: root.fontSizePx,
+                    lastY: root.y,
+                    gaps: []
+                };
+                processed.add(i);
+
+                // Find successors
+                let current = root;
+                for (let j = i + 1; j < pool.length; j++) {
+                    if (processed.has(j)) continue;
+
+                    const candidate = pool[j];
+
+                    // Matching Heuristics
+                    if (candidate.fontSizePx !== block.fontSizePx) continue;
+                    if (Math.abs(candidate.x - block.x) > 20) continue; // Strict Column Align
+
+                    const verticalGap = candidate.y - current.y;
+
+                    // Gap must be positive and reasonable (< 2.5 font size)
+                    if (verticalGap > 0 && verticalGap < (block.fontSizePx * 2.5)) {
+                        block.lines.push(candidate.text);
+                        block.width = Math.max(block.width, candidate.width);
+                        block.gaps.push(verticalGap);
+
+                        block.lastY = candidate.y;
+                        current = candidate;
+                        processed.add(j);
+                    }
+                }
+
+                // Calculate Dynamic Line Height
+                if (block.gaps.length > 0) {
+                    const avgGap = block.gaps.reduce((a, b) => a + b, 0) / block.gaps.length;
+                    block.lineHeightRatio = avgGap / block.fontSizePx;
+                } else {
+                    block.lineHeightRatio = 1.2;
+                }
+                blocks.push(block);
+            }
+
+            // 3. Render Blocks
+            blocks.forEach(b => {
+                const combinedText = b.lines.join('<br>');
+
+                // Dynamic geometric line height (clamped 1.0 - 2.0)
+                let lh = Math.max(1.0, Math.min(b.lineHeightRatio, 2.0));
+                lh = Math.round(lh * 100) / 100;
+
+                const padding = 2;
+
+                // Height = Lines * (FontSize * LH) + Padding*2
+                const totalHeight = Math.round((b.lines.length * (b.fontSizePx * lh)) + (padding * 2));
+
+                const finalY = b.y - padding;
+
+                const el = Elements.createTextBox(b.x - padding, finalY, b.width + (padding * 3), totalHeight, combinedText);
+                el.content = `<p style="margin:0; line-height: ${lh};">${combinedText}</p>`;
+                el.fontSize = b.fontSizePx;
+                el.fontFamily = 'Inter';
+                el.backgroundColor = '#ffffff'; // Opaque
+                el.padding = padding;
+                el.locked = false;
+                el.borderWidth = 0;
                 el.borderColor = 'transparent';
-                el.zIndex = 10; // Ensure it's above background
+                el.zIndex = 20;
 
                 docPage.elements.push(el);
             });
