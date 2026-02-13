@@ -222,7 +222,8 @@ const PDFHandler = {
                 const finalY = b.y - padding;
 
                 const el = Elements.createTextBox(b.x - padding, finalY, b.width + (padding * 3), totalHeight, combinedText);
-                el.content = `<p style="margin:0; line-height: ${lh};">${combinedText}</p>`;
+                // Add pointer-events: none to ensure clicks pass through to the draggable wrapper
+                el.content = `<p style="margin:0; line-height: ${lh}; pointer-events: none;">${combinedText}</p>`;
                 el.fontSize = b.fontSizePx;
                 el.fontFamily = 'Inter';
                 el.backgroundColor = '#ffffff'; // Opaque

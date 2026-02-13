@@ -239,6 +239,10 @@ const Canvas = {
         div.style.pointerEvents = 'auto';
         div.style.userSelect = 'text';
         div.style.cursor = 'text';
+
+        // Enable interaction with children (e.g. <p> tags with pointer-events: none)
+        Array.from(div.children).forEach(child => child.style.pointerEvents = 'auto');
+
         div.focus();
         this.editingTextbox = elId;
         wrapper.style.cursor = 'text';
@@ -247,9 +251,13 @@ const Canvas = {
         // On blur, exit edit mode
         const onBlur = () => {
             div.contentEditable = false;
-            div.style.pointerEvents = 'none';
+            div.style.pointerEvents = 'none'; // Revert parent to none (clicks hit wrapper)
             div.style.userSelect = 'none';
             div.style.cursor = 'move';
+
+            // Revert children interaction
+            Array.from(div.children).forEach(child => child.style.pointerEvents = '');
+
             DocModel.updateElement(null, elId, { content: div.innerHTML });
             this.editingTextbox = null;
             wrapper.style.cursor = 'move';
