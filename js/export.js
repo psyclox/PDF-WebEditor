@@ -5,18 +5,50 @@ const ExportManager = {
         if (statusBar) statusBar.textContent = 'Exporting PDF...';
 
         try {
-            const { PDFDocument, rgb, StandardFonts } = PDFLib;
-            const pdfDoc = await PDFDocument.create();
+            const { PDFDocument, rgb, StandardFonts, degrees } = PDFLib;
+            let pdfDoc;
+            let srcDoc = null;
+
+            // Try to load original PDF for "Proper Export" (Vector preservation)
+            if (DocModel.pdfBuffer) {
+                try {
+                    srcDoc = await PDFDocument.load(DocModel.pdfBuffer);
+                    pdfDoc = await PDFDocument.create();
+                } catch (e) {
+                    console.warn('Failed to load original PDF buffer, falling back to raster export', e);
+                    pdfDoc = await PDFDocument.create();
+                }
+            } else {
+                pdfDoc = await PDFDocument.create();
+            }
+
             const ps = DocModel.pageSettings;
 
             for (let i = 0; i < DocModel.pages.length; i++) {
                 const page = DocModel.pages[i];
-                const pdfPage = pdfDoc.addPage([ps.width * 0.75, ps.height * 0.75]);
+                let pdfPage;
+
+                // Check if this page has a PDF background
+                const bgEl = page.elements.find(el => el.isPdfBackground);
+
+                if (srcDoc && bgEl && typeof bgEl.pdfPageIndex === 'number') {
+                    // Copy original vector page
+                    const [copiedPage] = await pdfDoc.copyPages(srcDoc, [bgEl.pdfPageIndex]);
+                    pdfPage = pdfDoc.addPage(copiedPage);
+                } else {
+                    // Create new blank page
+                    pdfPage = pdfDoc.addPage([ps.width * 0.75, ps.height * 0.75]);
+
+                    // If it has a background color, draw it? (Optional, default white)
+                }
 
                 const sorted = [...page.elements].sort((a, b) => a.zIndex - b.zIndex);
 
                 for (const el of sorted) {
                     if (!el.visible) continue;
+
+                    // Skip the background image if we used the vector page!
+                    if (el.isPdfBackground && srcDoc) continue;
 
                     try {
                         if (el.type === 'textbox') {
@@ -127,8 +159,8 @@ const ExportManager = {
 
             const pdfBytes = await pdfDoc.save();
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            this.download(blob, 'document.pdf');
-            if (statusBar) statusBar.textContent = 'PDF exported successfully';
+            this.download(blob, 'pro_edited_document.pdf');
+            if (statusBar) statusBar.textContent = 'PDF exported successfully (Vector Mode)';
         } catch (err) {
             console.error('PDF export error:', err);
             if (statusBar) statusBar.textContent = 'Error exporting PDF: ' + err.message;

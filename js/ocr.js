@@ -53,7 +53,10 @@ const OCRManager = {
                         );
                         textEl.content = `<p>${block.text.replace(/\n/g, '<br>')}</p>`;
                         textEl.fontSize = Math.max(10, Math.round(block.paragraphs?.[0]?.lines?.[0]?.words?.[0]?.font_size || 14));
-                        textEl.backgroundColor = 'rgba(255,255,200,0.5)';
+                        textEl.backgroundColor = '#ffffff'; // White to cover original text
+                        textEl.padding = 2; // Low padding to fit tight bbox
+                        textEl.locked = false; // Ensure editable
+                        textEl.borderColor = 'transparent';
                         DocModel.addElement(DocModel.activePageIndex, textEl);
                     });
                 }
@@ -61,7 +64,7 @@ const OCRManager = {
 
             await worker.terminate();
             Canvas.render();
-            if (statusBar) statusBar.textContent = 'OCR completed successfully';
+            if (statusBar) statusBar.textContent = 'OCR completed successfully. Text is now editable.';
             if (progressBar) progressBar.classList.remove('show');
         } catch (err) {
             console.error('OCR Error:', err);
@@ -70,6 +73,10 @@ const OCRManager = {
         }
 
         this.isRunning = false;
+    },
+
+    recognizeText() {
+        return this.runOCR();
     }
 };
 

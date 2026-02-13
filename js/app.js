@@ -11,6 +11,7 @@ const App = {
 
         // Status bar
         document.getElementById('status-text').textContent = 'Ready';
+        this.updatePageInfo();
 
         // File menu
         this.setupFileMenu();
@@ -28,6 +29,7 @@ const App = {
             if (e.key === 'Escape') {
                 Toolbar.closeAllDialogs();
                 document.getElementById('find-replace-panel')?.classList.remove('show');
+                document.getElementById('file-menu')?.classList.remove('show');
                 if (document.body.classList.contains('focus-active') || document.body.classList.contains('immersive-active')) {
                     ViewManager.setMode('print-layout');
                 }
@@ -45,6 +47,29 @@ const App = {
         document.getElementById('replace-btn')?.addEventListener('click', () => this.replaceText());
         document.getElementById('replace-all-btn')?.addEventListener('click', () => this.replaceAllText());
 
+        // Hidden file input for PDF/JSON open
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.id = 'hidden-file-input';
+        fileInput.accept = '.pdf,.json';
+        fileInput.style.display = 'none';
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.name.toLowerCase().endsWith('.pdf')) {
+                PDFHandler.openPDF(file);
+            } else if (file.name.toLowerCase().endsWith('.json')) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    DocModel.deserialize(ev.target.result);
+                    Canvas.render();
+                };
+                reader.readAsText(file);
+            }
+            fileInput.value = ''; // Reset so same file can be re-selected
+        });
+        document.body.appendChild(fileInput);
+
         console.log('ProEditor initialized');
     },
 
@@ -52,15 +77,39 @@ const App = {
         const fileTab = document.querySelector('.ribbon-tab[data-tab="file"]');
         if (!fileTab) return;
 
+        // Override the default tab switching for the File tab — show file menu instead
         fileTab.addEventListener('click', (e) => {
             e.stopPropagation();
+            e.preventDefault();
+
+            // Close other panels and active states, but don't select the File "panel"
             const menu = document.getElementById('file-menu');
-            if (menu) menu.classList.toggle('show');
+            if (menu) {
+                const isOpen = menu.classList.contains('show');
+                // Close any open dropdown/menus first
+                Toolbar.closeAllDialogs();
+                document.getElementById('file-menu')?.classList.remove('show');
+
+                if (!isOpen) {
+                    menu.classList.add('show');
+                }
+            }
         });
 
-        document.addEventListener('click', () => {
-            document.getElementById('file-menu')?.classList.remove('show');
+        // Close file menu on click outside
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('file-menu');
+            if (menu && !menu.contains(e.target) && !e.target.closest('.ribbon-tab[data-tab="file"]')) {
+                menu.classList.remove('show');
+            }
         });
+    },
+
+    updatePageInfo() {
+        const pageInfo = document.getElementById('page-info');
+        if (pageInfo) {
+            pageInfo.textContent = `Page ${DocModel.activePageIndex + 1} of ${DocModel.pages.length}`;
+        }
     },
 
     showContextMenu(e) {
@@ -83,6 +132,8 @@ const App = {
                 { label: '⬇️ Send to Back', action: () => { DocModel.selectedElements.forEach(id => DocModel.sendToBack(DocModel.activePageIndex, id)); Canvas.render(); } },
                 { label: '---' },
                 { label: '🔒 Lock/Unlock', action: () => { DocModel.selectedElements.forEach(id => { const el = DocModel.getElement(DocModel.activePageIndex, id); if (el) DocModel.updateElement(DocModel.activePageIndex, id, { locked: !el.locked }); }); Canvas.render(); } },
+                { label: '🔗 Group', shortcut: 'Ctrl+G', action: () => Canvas.groupSelected() },
+                { label: '🔓 Ungroup', shortcut: 'Ctrl+Shift+G', action: () => Canvas.ungroupSelected() },
                 { label: '🗑️ Delete', action: () => { DocModel.selectedElements.forEach(id => DocModel.removeElement(DocModel.activePageIndex, id)); DocModel.selectedElements = []; Canvas.render(); } }
             );
         } else {
@@ -91,6 +142,7 @@ const App = {
                 { label: '---' },
                 { label: '📝 Insert Text', action: () => Toolbar.insertElement('textbox') },
                 { label: '🖼️ Insert Image', action: () => Toolbar.insertImage() },
+                { label: '🔗 Insert Link', action: () => Toolbar.showLinkDialog() },
                 { label: '📊 Insert Table', action: () => Toolbar.showTableDialog() },
                 { label: '---' },
                 { label: '➕ Add Page', action: () => { DocModel.addPage(DocModel.activePageIndex); Canvas.render(); } },
@@ -113,29 +165,37 @@ const App = {
         });
 
         document.body.appendChild(menu);
-        document.addEventListener('click', () => menu.remove(), { once: true });
+        setTimeout(() => {
+            document.addEventListener('click', () => menu.remove(), { once: true });
+        }, 10);
     },
 
     findText() {
         const query = document.getElementById('find-input')?.value;
         if (!query) return;
 
-        const page = DocModel.getActivePage();
         let found = false;
-        page.elements.forEach(el => {
-            if (el.type === 'textbox') {
-                const tmp = document.createElement('div');
-                tmp.innerHTML = el.content;
-                if (tmp.textContent.toLowerCase().includes(query.toLowerCase())) {
-                    DocModel.selectedElements = [el.id];
-                    found = true;
+        // Search all pages
+        for (let pIdx = 0; pIdx < DocModel.pages.length; pIdx++) {
+            const page = DocModel.pages[pIdx];
+            for (const el of page.elements) {
+                if (el.type === 'textbox') {
+                    const tmp = document.createElement('div');
+                    tmp.innerHTML = el.content;
+                    if (tmp.textContent.toLowerCase().includes(query.toLowerCase())) {
+                        DocModel.activePageIndex = pIdx;
+                        DocModel.selectedElements = [el.id];
+                        found = true;
+                        break;
+                    }
                 }
             }
-        });
-        Canvas.render();
-        if (!found) {
-            document.getElementById('status-text').textContent = 'Text not found';
+            if (found) break;
         }
+
+        Canvas.render();
+        document.getElementById('status-text').textContent = found ? 'Match found' : 'Text not found';
+        this.updatePageInfo();
     },
 
     replaceText() {
@@ -143,13 +203,18 @@ const App = {
         const replacement = document.getElementById('replace-input')?.value;
         if (!query) return;
 
+        let replaced = 0;
         DocModel.selectedElements.forEach(id => {
             const el = DocModel.getElement(DocModel.activePageIndex, id);
             if (el && el.type === 'textbox') {
-                el.content = el.content.replace(new RegExp(this.escapeRegex(query), 'gi'), replacement || '');
+                const before = el.content;
+                el.content = el.content.replace(new RegExp(this.escapeRegex(query), 'i'), replacement || '');
+                if (before !== el.content) replaced++;
             }
         });
+        DocModel.saveState();
         Canvas.render();
+        document.getElementById('status-text').textContent = replaced > 0 ? `Replaced ${replaced} occurrence(s)` : 'Nothing to replace';
     },
 
     replaceAllText() {
@@ -157,16 +222,19 @@ const App = {
         const replacement = document.getElementById('replace-input')?.value;
         if (!query) return;
 
+        let replaced = 0;
         DocModel.pages.forEach(page => {
             page.elements.forEach(el => {
                 if (el.type === 'textbox') {
+                    const before = el.content;
                     el.content = el.content.replace(new RegExp(this.escapeRegex(query), 'gi'), replacement || '');
+                    if (before !== el.content) replaced++;
                 }
             });
         });
         DocModel.saveState();
         Canvas.render();
-        document.getElementById('status-text').textContent = 'All occurrences replaced';
+        document.getElementById('status-text').textContent = `Replaced in ${replaced} element(s)`;
     },
 
     escapeRegex(string) {

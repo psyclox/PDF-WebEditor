@@ -3,6 +3,7 @@ const DocModel = {
     pages: [],
     activePageIndex: 0,
     selectedElements: [],
+    groups: {},       // Group ID -> array of element IDs
     history: [],
     historyIndex: -1,
     maxHistory: 50,
@@ -18,6 +19,7 @@ const DocModel = {
         pageNumberStyle: 'none',
         pageNumberPosition: 'bottom-center',
         pageNumberFormat: 'decimal',
+        pageNumberStartFrom: 1,
         headerContent: '',
         footerContent: '',
         backgroundColor: '#ffffff',
@@ -26,6 +28,10 @@ const DocModel = {
 
     init() {
         this.pages = [];
+        this.selectedElements = [];
+        this.groups = {};
+        this.history = [];
+        this.historyIndex = -1;
         this.addPage();
         this.saveState();
     },
@@ -52,6 +58,7 @@ const DocModel = {
 
     deletePage(index) {
         if (this.pages.length <= 1) return false;
+
         this.pages.splice(index, 1);
         if (this.activePageIndex >= this.pages.length) {
             this.activePageIndex = this.pages.length - 1;
@@ -60,18 +67,36 @@ const DocModel = {
         return true;
     },
 
+    movePage(index, direction) {
+        const newIndex = index + direction;
+        if (newIndex < 0 || newIndex >= this.pages.length) return false;
+
+        const page = this.pages[index];
+        this.pages.splice(index, 1);
+        this.pages.splice(newIndex, 0, page);
+
+        this.activePageIndex = newIndex;
+        this.saveState();
+        return true;
+    },
+
+
     getActivePage() {
-        return this.pages[this.activePageIndex];
+        return this.pages[this.activePageIndex] || this.pages[0];
     },
 
     addElement(pageIndex, element) {
         const page = this.pages[pageIndex] || this.getActivePage();
-        element.id = 'el-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        element.zIndex = page.elements.length;
-        element.locked = false;
-        element.visible = true;
-        element.opacity = element.opacity || 1;
-        element.rotation = element.rotation || 0;
+        // Generate ID only if one isn't already set
+        if (!element.id) {
+            element.id = 'el-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+        // Set defaults only if not already set
+        if (element.zIndex === undefined) element.zIndex = page.elements.length;
+        if (element.locked === undefined) element.locked = false;
+        if (element.visible === undefined) element.visible = true;
+        if (element.opacity === undefined) element.opacity = 1;
+        if (element.rotation === undefined) element.rotation = 0;
         page.elements.push(element);
         this.saveState();
         return element;
@@ -80,16 +105,27 @@ const DocModel = {
     removeElement(pageIndex, elementId) {
         const page = this.pages[pageIndex] || this.getActivePage();
         page.elements = page.elements.filter(el => el.id !== elementId);
+        // Also remove from any groups
+        for (const gid in this.groups) {
+            this.groups[gid] = this.groups[gid].filter(id => id !== elementId);
+            if (this.groups[gid].length === 0) delete this.groups[gid];
+        }
         this.saveState();
     },
 
     updateElement(pageIndex, elementId, props) {
-        const page = this.pages[pageIndex] || this.getActivePage();
-        const el = page.elements.find(e => e.id === elementId);
-        if (el) {
-            Object.assign(el, props);
-            this.saveState();
+        let el;
+        if (pageIndex !== null && pageIndex !== undefined) {
+            const page = this.pages[pageIndex] || this.getActivePage();
+            el = page.elements.find(e => e.id === elementId);
+        } else {
+            // Search all pages
+            for (const pg of this.pages) {
+                el = pg.elements.find(e => e.id === elementId);
+                if (el) break;
+            }
         }
+        if (el) Object.assign(el, props);
         return el;
     },
 
@@ -111,7 +147,7 @@ const DocModel = {
 
     bringToFront(pageIndex, elementId) {
         const page = this.pages[pageIndex] || this.getActivePage();
-        const maxZ = Math.max(...page.elements.map(e => e.zIndex));
+        const maxZ = Math.max(...page.elements.map(e => e.zIndex || 0));
         this.reorderElement(pageIndex, elementId, maxZ + 1);
     },
 
@@ -126,14 +162,56 @@ const DocModel = {
         const el = page.elements.find(e => e.id === elementId);
         if (el) {
             const clone = JSON.parse(JSON.stringify(el));
+            clone.id = null; // Force new ID
             clone.x += 20;
             clone.y += 20;
             return this.addElement(pageIndex, clone);
         }
     },
 
+    // ===== GROUPING =====
+    groupElements(elementIds) {
+        if (elementIds.length < 2) return null;
+        const groupId = 'group-' + Date.now();
+        this.groups[groupId] = [...elementIds];
+        // Tag each element with the group
+        elementIds.forEach(id => {
+            const el = this.getElement(this.activePageIndex, id);
+            if (el) el.groupId = groupId;
+        });
+        this.saveState();
+        return groupId;
+    },
+
+    ungroupElements(groupId) {
+        if (!this.groups[groupId]) return;
+        this.groups[groupId].forEach(id => {
+            const el = this.getElement(this.activePageIndex, id);
+            if (el) delete el.groupId;
+        });
+        delete this.groups[groupId];
+        this.saveState();
+    },
+
+    getGroupMembers(groupId) {
+        return this.groups[groupId] || [];
+    },
+
+    // Select all members of the group an element belongs to
+    selectGroup(elementId) {
+        const el = this.getElement(this.activePageIndex, elementId);
+        if (el && el.groupId && this.groups[el.groupId]) {
+            return [...this.groups[el.groupId]];
+        }
+        return [elementId];
+    },
+
     saveState() {
-        const state = JSON.parse(JSON.stringify({ pages: this.pages, pageSettings: this.pageSettings }));
+        const state = JSON.parse(JSON.stringify({
+            pages: this.pages,
+            pageSettings: this.pageSettings,
+            groups: this.groups
+        }));
         if (this.historyIndex < this.history.length - 1) {
             this.history = this.history.slice(0, this.historyIndex + 1);
         }
@@ -150,6 +228,7 @@ const DocModel = {
             const state = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
             this.pages = state.pages;
             this.pageSettings = state.pageSettings;
+            this.groups = state.groups || {};
             return true;
         }
         return false;
@@ -161,6 +240,7 @@ const DocModel = {
             const state = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
             this.pages = state.pages;
             this.pageSettings = state.pageSettings;
+            this.groups = state.groups || {};
             return true;
         }
         return false;
@@ -170,7 +250,8 @@ const DocModel = {
         return JSON.stringify({
             pages: this.pages,
             pageSettings: this.pageSettings,
-            version: '1.0.0'
+            groups: this.groups,
+            version: '1.1.0'
         });
     },
 
@@ -179,7 +260,9 @@ const DocModel = {
             const data = JSON.parse(json);
             this.pages = data.pages || [];
             this.pageSettings = { ...this.pageSettings, ...data.pageSettings };
+            this.groups = data.groups || {};
             this.activePageIndex = 0;
+            this.selectedElements = [];
             this.history = [];
             this.historyIndex = -1;
             this.saveState();

@@ -3,7 +3,8 @@ const Elements = {
     createTextBox(x, y, width, height, content) {
         return {
             type: 'textbox',
-            x: x || 100, y: y || 100,
+            x: x !== undefined ? x : 100,
+            y: y !== undefined ? y : 100,
             width: width || 300, height: height || 100,
             content: content || '<p>Type your text here...</p>',
             fontFamily: 'Inter',
@@ -28,7 +29,8 @@ const Elements = {
     createImage(x, y, src, width, height) {
         return {
             type: 'image',
-            x: x || 100, y: y || 100,
+            x: x !== undefined ? x : 100,
+            y: y !== undefined ? y : 100,
             width: width || 300, height: height || 200,
             src: src || '',
             objectFit: 'contain',
@@ -51,7 +53,8 @@ const Elements = {
         return {
             type: 'shape',
             shapeType: shapeType || 'rectangle',
-            x: x || 100, y: y || 100,
+            x: x !== undefined ? x : 100,
+            y: y !== undefined ? y : 100,
             width: width || 150, height: height || 100,
             fill: '#4a90d9',
             stroke: '#2c5f8a',
@@ -117,7 +120,9 @@ const Elements = {
             opacity: options?.opacity || 0.3,
             isWatermark: true,
             locked: true,
-            imageSrc: options?.imageSrc || null
+            subType: options?.subType || 'text',
+            imageSrc: options?.imageSrc || null,
+            blur: options?.blur || 0
         };
     },
 

@@ -1,4 +1,4 @@
-// page-settings.js — Page margins, size, orientation, page numbers, columns
+// page-settings.js — Page settings: custom margins, page numbers, columns
 const PageSettings = {
     init() {
         this.setupCustomMarginControls();
@@ -7,58 +7,67 @@ const PageSettings = {
     },
 
     setupCustomMarginControls() {
-        ['marginTop', 'marginBottom', 'marginLeft', 'marginRight'].forEach(prop => {
-            const input = document.getElementById(prop);
-            input?.addEventListener('change', (e) => {
-                DocModel.pageSettings[prop] = parseInt(e.target.value) || 96;
-                DocModel.saveState();
-                Canvas.render();
-            });
+        ['marginTop', 'marginBottom', 'marginLeft', 'marginRight'].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener('change', () => {
+                    const val = parseInt(input.value);
+                    if (!isNaN(val) && val >= 0 && val < 500) {
+                        DocModel.pageSettings[id] = val;
+                        DocModel.saveState();
+                        Canvas.render();
+                        document.getElementById('status-text').textContent = `${id} set to ${val}px`;
+                    }
+                });
+            }
         });
     },
 
     setupPageNumberControls() {
-        document.getElementById('pagenum-format')?.addEventListener('change', (e) => {
-            DocModel.pageSettings.pageNumberFormat = e.target.value;
-            Canvas.render();
-        });
+        // Already handled in toolbar.js via the pagenum-apply button
+        // This provides alternative direct access
+        const styleEl = document.getElementById('pagenum-style');
+        const formatEl = document.getElementById('pagenum-format');
+        const positionEl = document.getElementById('pagenum-position');
+        const startEl = document.getElementById('pagenum-start');
 
-        document.getElementById('pagenum-position')?.addEventListener('change', (e) => {
-            DocModel.pageSettings.pageNumberPosition = e.target.value;
-            Canvas.render();
-        });
-
-        document.getElementById('pagenum-style')?.addEventListener('change', (e) => {
-            DocModel.pageSettings.pageNumberStyle = e.target.value;
-            Canvas.render();
-        });
-
-        document.getElementById('pagenum-start')?.addEventListener('change', (e) => {
-            DocModel.pageSettings.pageNumberStartFrom = parseInt(e.target.value) || 1;
-            Canvas.render();
-        });
-
-        document.getElementById('pagenum-apply')?.addEventListener('click', () => {
-            Toolbar.closeAllDialogs();
-            Canvas.render();
-        });
+        if (styleEl) {
+            styleEl.addEventListener('change', () => {
+                DocModel.pageSettings.pageNumberStyle = styleEl.value;
+            });
+        }
+        if (formatEl) {
+            formatEl.addEventListener('change', () => {
+                DocModel.pageSettings.pageNumberFormat = formatEl.value;
+            });
+        }
+        if (positionEl) {
+            positionEl.addEventListener('change', () => {
+                DocModel.pageSettings.pageNumberPosition = positionEl.value;
+            });
+        }
+        if (startEl) {
+            startEl.addEventListener('change', () => {
+                DocModel.pageSettings.pageNumberStartFrom = parseInt(startEl.value) || 1;
+            });
+        }
     },
 
     setupColumnControls() {
         document.querySelectorAll('.column-option').forEach(btn => {
             btn.addEventListener('click', () => {
-                DocModel.pageSettings.columns = parseInt(btn.dataset.columns) || 1;
+                const cols = parseInt(btn.dataset.columns) || 1;
+                DocModel.pageSettings.columns = cols;
+                DocModel.saveState();
+
+                // Update button states
+                document.querySelectorAll('.column-option').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
                 Canvas.render();
+                document.getElementById('status-text').textContent = `Layout: ${cols} column${cols > 1 ? 's' : ''}`;
             });
         });
-    },
-
-    getPageDimensionsInches() {
-        const ps = DocModel.pageSettings;
-        return {
-            width: (ps.width / 96).toFixed(2),
-            height: (ps.height / 96).toFixed(2)
-        };
     }
 };
 

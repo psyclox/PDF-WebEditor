@@ -1,492 +1,1044 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ProEditor — Professional Document & PDF Editor</title>
-    <meta name="description" content="A powerful web-based document and PDF editor with professional tools for text, images, tables, OCR, and more.">
+    <meta name="description"
+        content="A powerful web-based document and PDF editor with professional tools for text, images, tables, OCR, and more.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&family=Dancing+Script:wght@400;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body class="dark-mode">
 
-<!-- ===== TITLE BAR ===== -->
-<div class="title-bar">
-    <div class="title-bar-left">
-        <span class="app-icon">📄</span>
-        <button id="btn-undo" class="title-btn" title="Undo (Ctrl+Z)">↶</button>
-        <button id="btn-redo" class="title-btn" title="Redo (Ctrl+Y)">↷</button>
+    <!-- ===== TITLE BAR ===== -->
+    <div class="title-bar">
+        <div class="title-bar-left">
+            <span class="app-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg></span>
+            <button id="btn-undo" class="title-btn" title="Undo (Ctrl+Z)"><svg width="16" height="16"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M3 7v6h6"></path>
+                    <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+                </svg></button>
+            <button id="btn-redo" class="title-btn" title="Redo (Ctrl+Y)"><svg width="16" height="16"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M21 7v6h-6"></path>
+                    <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path>
+                </svg></button>
+        </div>
+        <div class="title-bar-center">ProEditor — Document Editor <span
+                style="font-size:10px;opacity:0.5;margin-left:5px;">v2.0</span></div>
+        <div class="title-bar-right">
+            <button id="btn-dark-mode" class="title-btn active" title="Dark Mode"><svg width="16" height="16"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg></button>
+        </div>
     </div>
-    <div class="title-bar-center">ProEditor — Document Editor</div>
-    <div class="title-bar-right">
-        <button id="btn-dark-mode" class="title-btn active" title="Dark Mode">🌙</button>
-    </div>
-</div>
 
-<!-- ===== RIBBON TABS ===== -->
-<div class="ribbon-tabs">
-    <button class="ribbon-tab" data-tab="file">File</button>
-    <button class="ribbon-tab active" data-tab="home">Home</button>
-    <button class="ribbon-tab" data-tab="insert">Insert</button>
-    <button class="ribbon-tab" data-tab="design">Design</button>
-    <button class="ribbon-tab" data-tab="layout">Layout</button>
-    <button class="ribbon-tab" data-tab="view">View</button>
-</div>
+    <!-- ===== RIBBON TABS ===== -->
+    <div class="ribbon-tabs">
+        <button class="ribbon-tab" data-tab="file">File</button>
+        <button class="ribbon-tab active" data-tab="home">Home</button>
+        <button class="ribbon-tab" data-tab="insert">Insert</button>
+        <button class="ribbon-tab" data-tab="design">Design</button>
+        <button class="ribbon-tab" data-tab="layout">Layout</button>
+        <button class="ribbon-tab" data-tab="view">View</button>
+    </div>
 
-<!-- ===== FILE MENU ===== -->
-<div id="file-menu" class="file-menu">
-    <div class="file-menu-inner">
-        <button id="btn-new" class="file-item">📄 New</button>
-        <button id="btn-open" class="file-item">📂 Open PDF / Project</button>
-        <button id="btn-save" class="file-item">💾 Save Project</button>
-        <div class="file-separator"></div>
-        <div class="file-section-title">Export As</div>
-        <button id="btn-export-pdf" class="file-item">📕 Export as PDF</button>
-        <button id="btn-export-png" class="file-item">🖼️ Export as PNG</button>
-        <button id="btn-export-docx" class="file-item">📘 Export as DOCX</button>
-        <div class="file-separator"></div>
-        <button id="btn-ocr" class="file-item">🔍 Run OCR on Page</button>
-        <button id="btn-find" class="file-item">🔎 Find & Replace</button>
+    <!-- ===== FILE MENU ===== -->
+    <div id="file-menu" class="file-menu">
+        <div class="file-menu-inner">
+            <button id="btn-new" class="file-item"><svg class="menu-icon" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="11" x2="12" y2="17"></line>
+                    <line x1="9" y1="14" x2="15" y2="14"></line>
+                </svg> New</button>
+            <button id="btn-open" class="file-item"><svg class="menu-icon" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg> Open PDF / Project</button>
+            <button id="btn-save" class="file-item"><svg class="menu-icon" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg> Save Project</button>
+            <div class="file-separator"></div>
+            <div class="file-section-title">Export As</div>
+            <button id="btn-export-pdf" class="file-item"><svg class="menu-icon" width="16" height="16"
+                    viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <path d="M12 18v-6"></path>
+                    <path d="M9 15h6"></path>
+                </svg> Export as PDF</button>
+            <button id="btn-export-png" class="file-item"><svg class="menu-icon" width="16" height="16"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg> Export as PNG</button>
+            <button id="btn-export-docx" class="file-item"><svg class="menu-icon" width="16" height="16"
+                    viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg> Export as DOCX</button>
+            <div class="file-separator"></div>
+            <button id="btn-ocr" class="file-item"><svg class="menu-icon" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                    <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                    <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                    <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg> Run OCR on Page</button>
+            <button id="btn-find" class="file-item"><svg class="menu-icon" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg> Find & Replace</button>
+        </div>
     </div>
-</div>
 
-<!-- ===== RIBBON PANELS ===== -->
-<div class="ribbon-container">
+    <!-- ===== RIBBON PANELS ===== -->
+    <div class="ribbon-container">
 
-<!-- HOME PANEL -->
-<div id="panel-home" class="ribbon-panel active">
-    <div class="ribbon-group">
-        <div class="group-label">Clipboard</div>
-        <div class="group-content clipboard-group">
-            <button class="ribbon-btn" onclick="Canvas.pasteClipboard()" title="Paste"><span class="rbtn-icon">📋</span><span class="rbtn-label">Paste</span></button>
-            <div class="mini-btns">
-                <button class="ribbon-btn-sm" onclick="Canvas.copySelected()" title="Copy">📄</button>
-                <button class="ribbon-btn-sm" onclick="Canvas.copySelected();DocModel.selectedElements.forEach(id=>DocModel.removeElement(DocModel.activePageIndex,id));DocModel.selectedElements=[];Canvas.render()" title="Cut">✂️</button>
-            </div>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Font</div>
-        <div class="group-content font-group">
-            <div class="font-row">
-                <div id="font-family" class="font-select"><span id="font-family-text">Inter</span><span class="caret">▾</span></div>
-                <select id="font-size" class="size-select"><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="14" selected>14</option><option value="16">16</option><option value="18">18</option><option value="20">20</option><option value="22">22</option><option value="24">24</option><option value="28">28</option><option value="32">32</option><option value="36">36</option><option value="48">48</option><option value="72">72</option></select>
-            </div>
-            <div class="font-row">
-                <button id="btn-bold" class="fmt-btn" title="Bold (Ctrl+B)"><b>B</b></button>
-                <button id="btn-italic" class="fmt-btn" title="Italic (Ctrl+I)"><i>I</i></button>
-                <button id="btn-underline" class="fmt-btn" title="Underline (Ctrl+U)"><u>U</u></button>
-                <button id="btn-strikethrough" class="fmt-btn" title="Strikethrough"><s>ab</s></button>
-                <button id="btn-superscript" class="fmt-btn" title="Superscript">x²</button>
-                <button id="btn-subscript" class="fmt-btn" title="Subscript">x₂</button>
-                <div class="color-wrap"><label title="Text Color">A</label><input type="color" id="text-color" value="#000000"></div>
-                <div class="color-wrap highlight"><label title="Highlight">🖍</label><input type="color" id="highlight-color" value="#ffff00"></div>
-            </div>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Paragraph</div>
-        <div class="group-content para-group">
-            <div class="para-row">
-                <button id="btn-align-left" class="fmt-btn active" title="Align Left">≡←</button>
-                <button id="btn-align-center" class="fmt-btn" title="Align Center">≡↔</button>
-                <button id="btn-align-right" class="fmt-btn" title="Align Right">≡→</button>
-                <button id="btn-align-justify" class="fmt-btn" title="Justify">≡≡</button>
-            </div>
-            <div class="para-row">
-                <label class="mini-label">Line</label>
-                <select id="line-spacing" class="mini-select"><option value="1">1.0</option><option value="1.15">1.15</option><option value="1.5" selected>1.5</option><option value="2">2.0</option><option value="2.5">2.5</option><option value="3">3.0</option></select>
-                <label class="mini-label">Letter</label>
-                <input type="number" id="letter-spacing" class="mini-input" value="0" min="-5" max="20" step="0.5" title="Letter Spacing">
-                <label class="mini-label">Word</label>
-                <input type="number" id="word-spacing" class="mini-input" value="0" min="-5" max="30" step="1" title="Word Spacing">
-            </div>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Styles</div>
-        <div class="group-content styles-group">
-            <button class="style-preset" data-style="normal">Normal</button>
-            <button class="style-preset" data-style="no-spacing">No Spacing</button>
-            <button class="style-preset heading" data-style="heading1">Heading</button>
-            <button class="style-preset" data-style="heading2">Heading 2</button>
-            <button class="style-preset" data-style="title">Title</button>
-            <button class="style-preset" data-style="subtitle">Subtitle</button>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Editing</div>
-        <div class="group-content">
-            <button class="ribbon-btn" id="btn-find" title="Find & Replace"><span class="rbtn-icon">🔍</span><span class="rbtn-label">Find</span></button>
-        </div>
-    </div>
-</div>
-
-<!-- INSERT PANEL -->
-<div id="panel-insert" class="ribbon-panel">
-    <div class="ribbon-group">
-        <div class="group-label">Pages</div>
-        <div class="group-content">
-            <button id="btn-add-page" class="ribbon-btn" title="Add Page"><span class="rbtn-icon">📄</span><span class="rbtn-label">Add Page</span></button>
-            <button id="btn-insert-pagebreak" class="ribbon-btn" title="Page Break"><span class="rbtn-icon">📃</span><span class="rbtn-label">Page Break</span></button>
-            <button id="btn-delete-page" class="ribbon-btn" title="Delete Page"><span class="rbtn-icon">🗑️</span><span class="rbtn-label">Delete Page</span></button>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Elements</div>
-        <div class="group-content">
-            <button id="btn-insert-textbox" class="ribbon-btn" title="Text Box"><span class="rbtn-icon">📝</span><span class="rbtn-label">Text Box</span></button>
-            <button id="btn-insert-image" class="ribbon-btn" title="Image"><span class="rbtn-icon">🖼️</span><span class="rbtn-label">Picture</span></button>
-            <div class="dropdown-wrapper">
-                <button id="btn-insert-shape" class="ribbon-btn" title="Shapes"><span class="rbtn-icon">⬡</span><span class="rbtn-label">Shapes</span></button>
-                <div id="shape-menu" class="dropdown-menu shape-dropdown">
-                    <div class="shape-grid">
-                        <button class="shape-btn" onclick="Toolbar.insertShape('rectangle')" title="Rectangle">▭</button>
-                        <button class="shape-btn" onclick="Toolbar.insertShape('circle')" title="Circle">◯</button>
-                        <button class="shape-btn" onclick="Toolbar.insertShape('triangle')" title="Triangle">△</button>
-                        <button class="shape-btn" onclick="Toolbar.insertShape('line')" title="Line">—</button>
-                        <button class="shape-btn" onclick="Toolbar.insertShape('arrow')" title="Arrow">→</button>
-                        <button class="shape-btn" onclick="Toolbar.insertShape('star')" title="Star">★</button>
+        <!-- HOME PANEL -->
+        <div id="panel-home" class="ribbon-panel active">
+            <div class="ribbon-group">
+                <div class="group-label">Clipboard</div>
+                <div class="group-content clipboard-group">
+                    <button class="ribbon-btn" onclick="Canvas.pasteClipboard()" title="Paste"><span
+                            class="rbtn-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2">
+                                </path>
+                                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                            </svg></span><span class="rbtn-label">Paste</span></button>
+                    <div class="mini-btns">
+                        <button class="ribbon-btn-sm" onclick="Canvas.copySelected()" title="Copy"><svg width="16"
+                                height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg></button>
+                        <button class="ribbon-btn-sm"
+                            onclick="Canvas.copySelected();DocModel.selectedElements.forEach(id=>DocModel.removeElement(DocModel.activePageIndex,id));DocModel.selectedElements=[];Canvas.render()"
+                            title="Cut"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <circle cx="6" cy="6" r="3"></circle>
+                                <circle cx="6" cy="18" r="3"></circle>
+                                <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                                <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                                <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+                            </svg></button>
                     </div>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Font</div>
+                <div class="group-content font-group">
+                    <div class="font-row">
+                        <div id="font-family" class="font-select"><span id="font-family-text">Inter</span><span
+                                class="caret">▾</span></div>
+                        <select id="font-size" class="size-select">
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                            <option value="14" selected>14</option>
+                            <option value="16">16</option>
+                            <option value="18">18</option>
+                            <option value="20">20</option>
+                            <option value="22">22</option>
+                            <option value="24">24</option>
+                            <option value="28">28</option>
+                            <option value="32">32</option>
+                            <option value="36">36</option>
+                            <option value="48">48</option>
+                            <option value="72">72</option>
+                        </select>
+                    </div>
+                    <div class="font-row">
+                        <button id="btn-bold" class="fmt-btn" title="Bold (Ctrl+B)"><b>B</b></button>
+                        <button id="btn-italic" class="fmt-btn" title="Italic (Ctrl+I)"><i>I</i></button>
+                        <button id="btn-underline" class="fmt-btn" title="Underline (Ctrl+U)"><u>U</u></button>
+                        <button id="btn-strikethrough" class="fmt-btn" title="Strikethrough"><s>ab</s></button>
+                        <button id="btn-superscript" class="fmt-btn" title="Superscript">x²</button>
+                        <button id="btn-subscript" class="fmt-btn" title="Subscript">x₂</button>
+                        <div class="color-wrap"><label title="Text Color">A</label><input type="color" id="text-color"
+                                value="#000000"></div>
+                        <div class="color-wrap highlight"><label title="Highlight"><svg width="14" height="14"
+                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="m9 11-6 6v3h9l3-3"></path>
+                                    <path d="m22 7-3-3"></path>
+                                    <path d="m18 11-13-13"></path>
+                                </svg></label><input type="color" id="highlight-color" value="#ffff00"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Paragraph</div>
+                <div class="group-content para-group">
+                    <div class="para-row">
+                        <button id="btn-align-left" class="fmt-btn active" title="Align Left"><svg width="14"
+                                height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="17" y1="10" x2="3" y2="10"></line>
+                                <line x1="21" y1="6" x2="3" y2="6"></line>
+                                <line x1="21" y1="14" x2="3" y2="14"></line>
+                                <line x1="17" y1="18" x2="3" y2="18"></line>
+                            </svg></button>
+                        <button id="btn-align-center" class="fmt-btn" title="Align Center"><svg width="14" height="14"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="10" x2="6" y2="10"></line>
+                                <line x1="21" y1="6" x2="3" y2="6"></line>
+                                <line x1="21" y1="14" x2="3" y2="14"></line>
+                                <line x1="18" y1="18" x2="6" y2="18"></line>
+                            </svg></button>
+                        <button id="btn-align-right" class="fmt-btn" title="Align Right"><svg width="14" height="14"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="21" y1="10" x2="7" y2="10"></line>
+                                <line x1="21" y1="6" x2="3" y2="6"></line>
+                                <line x1="21" y1="14" x2="3" y2="14"></line>
+                                <line x1="21" y1="18" x2="7" y2="18"></line>
+                            </svg></button>
+                        <button id="btn-align-justify" class="fmt-btn" title="Justify"><svg width="14" height="14"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="21" y1="10" x2="3" y2="10"></line>
+                                <line x1="21" y1="6" x2="3" y2="6"></line>
+                                <line x1="21" y1="14" x2="3" y2="14"></line>
+                                <line x1="21" y1="18" x2="3" y2="18"></line>
+                            </svg></button>
+                        <div class="fmt-sep"></div>
+                        <button id="btn-list-ul" class="fmt-btn" title="Bullet List"><svg width="14" height="14"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="8" y1="6" x2="21" y2="6"></line>
+                                <line x1="8" y1="12" x2="21" y2="12"></line>
+                                <line x1="8" y1="18" x2="21" y2="18"></line>
+                                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                            </svg></button>
+                        <button id="btn-list-ol" class="fmt-btn" title="Numbered List"><svg width="14" height="14"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="10" y1="6" x2="21" y2="6"></line>
+                                <line x1="10" y1="12" x2="21" y2="12"></line>
+                                <line x1="10" y1="18" x2="21" y2="18"></line>
+                                <path d="M4 6h1v4"></path>
+                                <path d="M4 10h2"></path>
+                                <path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path>
+                            </svg></button>
+                    </div>
+                    <div class="para-row">
+                        <label class="mini-label">Line</label>
+                        <select id="line-spacing" class="mini-select">
+                            <option value="1">1.0</option>
+                            <option value="1.15">1.15</option>
+                            <option value="1.5" selected>1.5</option>
+                            <option value="2">2.0</option>
+                            <option value="2.5">2.5</option>
+                            <option value="3">3.0</option>
+                        </select>
+                        <label class="mini-label">Letter</label>
+                        <input type="number" id="letter-spacing" class="mini-input" value="0" min="-5" max="20"
+                            step="0.5" title="Letter Spacing">
+                        <label class="mini-label">Word</label>
+                        <input type="number" id="word-spacing" class="mini-input" value="0" min="-5" max="30" step="1"
+                            title="Word Spacing">
+                    </div>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Styles</div>
+                <div class="group-content styles-group">
+                    <button class="style-preset" data-style="normal">Normal</button>
+                    <button class="style-preset" data-style="no-spacing">No Spacing</button>
+                    <button class="style-preset heading" data-style="heading1">Heading</button>
+                    <button class="style-preset" data-style="heading2">Heading 2</button>
+                    <button class="style-preset" data-style="title">Title</button>
+                    <button class="style-preset" data-style="subtitle">Subtitle</button>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Editing</div>
+                <div class="group-content">
+                    <button class="ribbon-btn" id="btn-find" title="Find & Replace"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg></span><span class="rbtn-label">Find</span></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- INSERT PANEL -->
+        <div id="panel-insert" class="ribbon-panel">
+            <div class="ribbon-group">
+                <div class="group-label">Pages</div>
+                <div class="group-content">
+                    <button id="btn-add-page" class="ribbon-btn" title="Add Page"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="12" y1="11" x2="12" y2="17"></line>
+                                <line x1="9" y1="14" x2="15" y2="14"></line>
+                            </svg></span><span class="rbtn-label">Add Page</span></button>
+                    <button id="btn-insert-pagebreak" class="ribbon-btn" title="Page Break"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="9 10 4 15 9 20"></polyline>
+                                <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+                            </svg></span><span class="rbtn-label">Page Break</span></button>
+                    <button id="btn-delete-page" class="ribbon-btn" title="Delete Page"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path
+                                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                </path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg></span><span class="rbtn-label">Delete Page</span></button>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Elements</div>
+                <div class="group-content">
+                    <button id="btn-insert-textbox" class="ribbon-btn" title="Text Box"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                                <line x1="9" y1="20" x2="15" y2="20"></line>
+                                <line x1="12" y1="4" x2="12" y2="20"></line>
+                            </svg></span><span class="rbtn-label">Text Box</span></button>
+                    <button id="btn-insert-image" class="ribbon-btn" title="Image"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg></span><span class="rbtn-label">Picture</span></button>
+                    <div class="dropdown-wrapper">
+                        <button id="btn-insert-shape" class="ribbon-btn" title="Shapes"><span class="rbtn-icon"><svg
+                                    width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                                    </path>
+                                </svg></span><span class="rbtn-label">Shapes</span></button>
+                        <div id="shape-menu" class="dropdown-menu shape-dropdown">
+                            <div class="shape-grid">
+                                <button class="shape-btn" onclick="Toolbar.insertShape('rectangle')"
+                                    title="Rectangle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    </svg></button>
+                                <button class="shape-btn" onclick="Toolbar.insertShape('circle')" title="Circle"><svg
+                                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                    </svg></button>
+                                <button class="shape-btn" onclick="Toolbar.insertShape('triangle')"
+                                    title="Triangle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <path
+                                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                                        </path>
+                                    </svg></button>
+                                <button class="shape-btn" onclick="Toolbar.insertShape('line')" title="Line"><svg
+                                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg></button>
+                                <button class="shape-btn" onclick="Toolbar.insertShape('arrow')" title="Arrow"><svg
+                                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        <polyline points="12 5 19 12 12 19"></polyline>
+                                    </svg></button>
+                                <button class="shape-btn" onclick="Toolbar.insertShape('star')" title="Star"><svg
+                                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <polygon
+                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                                        </polygon>
+                                    </svg></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Tables</div>
+                <div class="group-content">
+                    <button id="btn-insert-table" class="ribbon-btn" title="Table"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="3" y1="9" x2="21" y2="9"></line>
+                                <line x1="3" y1="15" x2="21" y2="15"></line>
+                                <line x1="12" y1="3" x2="12" y2="21"></line>
+                            </svg></span><span class="rbtn-label">Table</span></button>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Annotations</div>
+                <div class="group-content">
+                    <button id="btn-insert-watermark" class="ribbon-btn" title="Watermark"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                            </svg></span><span class="rbtn-label">Watermark</span></button>
+                    <button id="btn-insert-signature" class="ribbon-btn" title="Signature"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                                <path d="M2 2l7.586 7.586"></path>
+                                <circle cx="11" cy="11" r="2"></circle>
+                            </svg></span><span class="rbtn-label">Signature</span></button>
+                    <button id="btn-insert-comment" class="ribbon-btn" title="Comment"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg></span><span class="rbtn-label">Comment</span></button>
+                    <button id="btn-insert-link" class="ribbon-btn" title="Link"><span class="rbtn-icon"><svg width="24"
+                                height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg></span><span class="rbtn-label">Link</span></button>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Header & Footer</div>
+                <div class="group-content">
+                    <button id="btn-insert-header" class="ribbon-btn" title="Header"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="12" y1="19" x2="12" y2="5"></line>
+                                <polyline points="5 12 12 5 19 12"></polyline>
+                                <line x1="5" y1="19" x2="19" y2="19"></line>
+                            </svg></span><span class="rbtn-label">Header</span></button>
+                    <button id="btn-insert-footer" class="ribbon-btn" title="Footer"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <polyline points="19 12 12 19 5 12"></polyline>
+                                <line x1="5" y1="5" x2="19" y2="5"></line>
+                            </svg></span><span class="rbtn-label">Footer</span></button>
+                    <button id="btn-insert-pagenum" class="ribbon-btn" title="Page Number"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="4" y1="9" x2="20" y2="9"></line>
+                                <line x1="4" y1="15" x2="20" y2="15"></line>
+                                <line x1="10" y1="3" x2="8" y2="21"></line>
+                                <line x1="16" y1="3" x2="14" y2="21"></line>
+                            </svg></span><span class="rbtn-label">Page No.</span></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- DESIGN PANEL -->
+        <div id="panel-design" class="ribbon-panel">
+            <div class="ribbon-group">
+                <div class="group-label">Element Properties</div>
+                <div class="group-content props-group">
+                    <div class="prop-row"><label>Rotation</label><input type="range" id="el-rotation" min="0" max="360"
+                            value="0"><span class="prop-val" id="el-rotation-val">0°</span></div>
+                    <div class="prop-row"><label>Opacity</label><input type="range" id="el-opacity" min="0" max="100"
+                            value="100"><span class="prop-val" id="el-opacity-val">100%</span></div>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Border</div>
+                <div class="group-content props-group">
+                    <div class="prop-row"><label>Width</label><input type="number" id="el-border-width"
+                            class="mini-input" min="0" max="20" value="0"></div>
+                    <div class="prop-row"><label>Color</label><input type="color" id="el-border-color" value="#000000">
+                    </div>
+                    <div class="prop-row"><label>Radius</label><input type="number" id="el-border-radius"
+                            class="mini-input" min="0" max="100" value="0"></div>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Shape Fill</div>
+                <div class="group-content">
+                    <div class="prop-row"><label>Fill</label><input type="color" id="shape-fill" value="#4a90d9"></div>
+                    <div class="prop-row"><label>Stroke</label><input type="color" id="shape-stroke" value="#2c5f8a">
+                    </div>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Image Corrections</div>
+                <div id="image-corrections" class="group-content props-group">
+                    <div class="prop-row"><label>Brightness</label><input type="range" id="img-brightness" min="0"
+                            max="200" value="100"></div>
+                    <div class="prop-row"><label>Contrast</label><input type="range" id="img-contrast" min="0" max="200"
+                            value="100"></div>
+                    <div class="prop-row"><label>Saturation</label><input type="range" id="img-saturation" min="0"
+                            max="200" value="100"></div>
+                    <div class="prop-row"><label>Hue</label><input type="range" id="img-hue" min="0" max="360"
+                            value="0"></div>
+                    <div class="prop-row"><label>Blur</label><input type="range" id="img-blur" min="0" max="20"
+                            value="0"></div>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Crop</div>
+                <div class="group-content props-group">
+                    <div class="prop-row"><label>Top</label><input type="range" id="img-cropTop" min="0" max="50"
+                            value="0"></div>
+                    <div class="prop-row"><label>Right</label><input type="range" id="img-cropRight" min="0" max="50"
+                            value="0"></div>
+                    <div class="prop-row"><label>Bottom</label><input type="range" id="img-cropBottom" min="0" max="50"
+                            value="0"></div>
+                    <div class="prop-row"><label>Left</label><input type="range" id="img-cropLeft" min="0" max="50"
+                            value="0"></div>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Arrange</div>
+                <div class="group-content">
+                    <button id="btn-bring-front" class="ribbon-btn-sm" title="Bring to Front"><svg width="14"
+                            height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M8 8H20V20H8z" fill="currentColor" fill-opacity="0.2"></path>
+                            <path d="M4 4H16V16H4z"></path>
+                        </svg> Front</button>
+                    <button id="btn-send-back" class="ribbon-btn-sm" title="Send to Back"><svg width="14" height="14"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4H16V16H4z" fill="currentColor" fill-opacity="0.2"></path>
+                            <path d="M8 8H20V20H8z"></path>
+                        </svg> Back</button>
+                    <button id="btn-lock" class="ribbon-btn-sm" title="Lock/Unlock"><svg width="14" height="14"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg> Lock</button>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Group</div>
+                <div class="group-content">
+                    <button id="btn-group" class="ribbon-btn-sm" title="Group (Ctrl+G)"><svg width="14" height="14"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                            <path d="M2 17l10 5 10-5"></path>
+                            <path d="M2 12l10 5 10-5"></path>
+                        </svg> Group</button>
+                    <button id="btn-ungroup" class="ribbon-btn-sm" title="Ungroup (Ctrl+Shift+G)"><svg width="14"
+                            height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                            <path d="M2 17l10 5 10-5"></path>
+                            <path d="M2 12l10 5 10-5"></path>
+                            <line x1="22" y1="2" x2="2" y2="22"></line>
+                        </svg> Ungroup</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LAYOUT PANEL -->
+        <div id="panel-layout" class="ribbon-panel">
+            <div class="ribbon-group">
+                <div class="group-label">Margins</div>
+                <div class="group-content">
+                    <button class="margin-preset" data-preset="normal"><svg width="14" height="14" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        </svg> Normal</button>
+                    <button class="margin-preset" data-preset="narrow"><svg width="14" height="14" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2H2v20h10"></path>
+                            <path d="M22 2H12v20h10"></path>
+                        </svg> Narrow</button>
+                    <button class="margin-preset" data-preset="moderate"><svg width="14" height="14" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="9" y1="3" x2="9" y2="21"></line>
+                            <line x1="15" y1="3" x2="15" y2="21"></line>
+                        </svg> Moderate</button>
+                    <button class="margin-preset" data-preset="wide"><svg width="14" height="14" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="6" y1="3" x2="6" y2="21"></line>
+                            <line x1="18" y1="3" x2="18" y2="21"></line>
+                        </svg> Wide</button>
+                    <button class="margin-preset" data-preset="mirrored"><svg width="14" height="14" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 3v13h-5l-5-5-5 5H4v-8h15z"></path>
+                        </svg> Mirrored</button>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Custom Margins (px)</div>
+                <div class="group-content props-group">
+                    <div class="prop-row"><label>Top</label><input type="number" id="marginTop" class="mini-input"
+                            value="96"></div>
+                    <div class="prop-row"><label>Bottom</label><input type="number" id="marginBottom" class="mini-input"
+                            value="96"></div>
+                    <div class="prop-row"><label>Left</label><input type="number" id="marginLeft" class="mini-input"
+                            value="96"></div>
+                    <div class="prop-row"><label>Right</label><input type="number" id="marginRight" class="mini-input"
+                            value="96"></div>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Orientation</div>
+                <div class="group-content">
+                    <button id="btn-portrait" class="ribbon-btn"><span class="rbtn-icon"><svg width="24" height="24"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                <polyline points="13 2 13 9 20 9"></polyline>
+                            </svg></span><span class="rbtn-label">Portrait</span></button>
+                    <button id="btn-landscape" class="ribbon-btn"><span class="rbtn-icon"><svg width="24" height="24"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                transform="rotate(270 12 12)">
+                                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                <polyline points="13 2 13 9 20 9"></polyline>
+                            </svg></span><span class="rbtn-label">Landscape</span></button>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Size</div>
+                <div class="group-content">
+                    <select id="page-size" class="tool-select">
+                        <option value="letter">Letter (8.5×11)</option>
+                        <option value="a4">A4 (210×297mm)</option>
+                        <option value="a3">A3</option>
+                        <option value="legal">Legal</option>
+                        <option value="a5">A5</option>
+                        <option value="b5">B5</option>
+                        <option value="executive">Executive</option>
+                        <option value="tabloid">Tabloid</option>
+                    </select>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Columns</div>
+                <div class="group-content">
+                    <button class="column-option ribbon-btn-sm" data-columns="1">One</button>
+                    <button class="column-option ribbon-btn-sm" data-columns="2">Two</button>
+                    <button class="column-option ribbon-btn-sm" data-columns="3">Three</button>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Page Order</div>
+                <div class="group-content">
+                    <button id="btn-page-move-up" class="ribbon-btn-sm" title="Move Page Up"><svg width="14" height="14"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="19" x2="12" y2="5"></line>
+                            <polyline points="5 12 12 5 19 12"></polyline>
+                        </svg> Move Up</button>
+                    <button id="btn-page-move-down" class="ribbon-btn-sm" title="Move Page Down"><svg width="14"
+                            height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <polyline points="19 12 12 19 5 12"></polyline>
+                        </svg> Move Down</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW PANEL -->
+        <div id="panel-view" class="ribbon-panel">
+            <div class="ribbon-group">
+                <div class="group-label">Views</div>
+                <div class="group-content">
+                    <button class="view-mode-btn ribbon-btn" data-mode="read"><span class="rbtn-icon"><svg width="24"
+                                height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                            </svg></span><span class="rbtn-label">Read Mode</span></button>
+                    <button class="view-mode-btn ribbon-btn active" data-mode="print-layout"><span
+                            class="rbtn-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2">
+                                </path>
+                                <rect x="6" y="14" width="12" height="8"></rect>
+                            </svg></span><span class="rbtn-label">Print Layout</span></button>
+                    <button class="view-mode-btn ribbon-btn" data-mode="web-layout"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="2" y1="12" x2="22" y2="12"></line>
+                                <path
+                                    d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                                </path>
+                            </svg></span><span class="rbtn-label">Web Layout</span></button>
+                    <button class="view-mode-btn ribbon-btn" data-mode="outline"><span class="rbtn-icon"><svg width="24"
+                                height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="8" y1="6" x2="21" y2="6"></line>
+                                <line x1="8" y1="12" x2="21" y2="12"></line>
+                                <line x1="8" y1="18" x2="21" y2="18"></line>
+                                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                            </svg></span><span class="rbtn-label">Outline</span></button>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Immersive</div>
+                <div class="group-content">
+                    <button class="view-mode-btn ribbon-btn" data-mode="focus"><span class="rbtn-icon"><svg width="24"
+                                height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="22" y1="12" x2="18" y2="12"></line>
+                                <line x1="6" y1="12" x2="2" y2="12"></line>
+                                <line x1="12" y1="6" x2="12" y2="2"></line>
+                                <line x1="12" y1="22" x2="12" y2="18"></line>
+                            </svg></span><span class="rbtn-label">Focus</span></button>
+                    <button class="view-mode-btn ribbon-btn" data-mode="immersive"><span class="rbtn-icon"><svg
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                <line x1="8" y1="21" x2="16" y2="21"></line>
+                                <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg></span><span class="rbtn-label">Immersive Reader</span></button>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Zoom</div>
+                <div class="group-content">
+                    <button id="btn-zoom-in" class="ribbon-btn-sm"><svg width="14" height="14" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            <line x1="11" y1="8" x2="11" y2="14"></line>
+                            <line x1="8" y1="11" x2="14" y2="11"></line>
+                        </svg> Zoom In</button>
+                    <button id="btn-zoom-out" class="ribbon-btn-sm"><svg width="14" height="14" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            <line x1="8" y1="11" x2="14" y2="11"></line>
+                        </svg> Zoom Out</button>
+                    <button id="btn-zoom-fit" class="ribbon-btn-sm"><svg width="14" height="14" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <path
+                                d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
+                            </path>
+                        </svg> 100%</button>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Show</div>
+                <div class="group-content">
+                    <button id="btn-ruler" class="ribbon-btn-sm"><svg width="14" height="14" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M2 12h20"></path>
+                            <path d="M6 12v-2"></path>
+                            <path d="M10 12v-2"></path>
+                            <path d="M14 12v-2"></path>
+                            <path d="M18 12v-2"></path>
+                        </svg> Ruler</button>
+                    <button id="btn-gridlines" class="ribbon-btn-sm"><svg width="14" height="14" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="3" y1="15" x2="21" y2="15"></line>
+                            <line x1="9" y1="3" x2="9" y2="21"></line>
+                            <line x1="15" y1="3" x2="15" y2="21"></line>
+                        </svg> Gridlines</button>
+                    <button id="btn-nav-pane" class="ribbon-btn-sm"><svg width="14" height="14" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="9" y1="3" x2="9" y2="21"></line>
+                        </svg> Navigation</button>
+                </div>
+            </div>
+            <div class="ribbon-sep"></div>
+            <div class="ribbon-group">
+                <div class="group-label">Page Movement</div>
+                <div class="group-content">
+                    <button class="ribbon-btn-sm" onclick="ViewManager.setPageMovement('vertical')"><svg width="14"
+                            height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <polyline points="19 12 12 19 5 12"></polyline>
+                            <polyline points="19 12 12 5 5 12"></polyline>
+                        </svg> Vertical</button>
+                    <button class="ribbon-btn-sm" onclick="ViewManager.setPageMovement('side')"><svg width="14"
+                            height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="16" y="3" width="5" height="18" rx="1"></rect>
+                            <rect x="3" y="3" width="5" height="18" rx="1"></rect>
+                        </svg> Side by Side</button>
                 </div>
             </div>
         </div>
     </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Tables</div>
-        <div class="group-content">
-            <button id="btn-insert-table" class="ribbon-btn" title="Table"><span class="rbtn-icon">📊</span><span class="rbtn-label">Table</span></button>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Annotations</div>
-        <div class="group-content">
-            <button id="btn-insert-watermark" class="ribbon-btn" title="Watermark"><span class="rbtn-icon">💧</span><span class="rbtn-label">Watermark</span></button>
-            <button id="btn-insert-signature" class="ribbon-btn" title="Signature"><span class="rbtn-icon">✍️</span><span class="rbtn-label">Signature</span></button>
-            <button id="btn-insert-comment" class="ribbon-btn" title="Comment"><span class="rbtn-icon">💬</span><span class="rbtn-label">Comment</span></button>
-            <button id="btn-insert-link" class="ribbon-btn" title="Link"><span class="rbtn-icon">🔗</span><span class="rbtn-label">Link</span></button>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Header & Footer</div>
-        <div class="group-content">
-            <button id="btn-insert-header" class="ribbon-btn" title="Header"><span class="rbtn-icon">🔝</span><span class="rbtn-label">Header</span></button>
-            <button id="btn-insert-footer" class="ribbon-btn" title="Footer"><span class="rbtn-icon">🔚</span><span class="rbtn-label">Footer</span></button>
-            <button id="btn-insert-pagenum" class="ribbon-btn" title="Page Number"><span class="rbtn-icon">#</span><span class="rbtn-label">Page No.</span></button>
-        </div>
-    </div>
-</div>
 
-<!-- DESIGN PANEL -->
-<div id="panel-design" class="ribbon-panel">
-    <div class="ribbon-group">
-        <div class="group-label">Element Properties</div>
-        <div class="group-content props-group">
-            <div class="prop-row"><label>Rotation</label><input type="range" id="el-rotation" min="0" max="360" value="0"><span class="prop-val" id="el-rotation-val">0°</span></div>
-            <div class="prop-row"><label>Opacity</label><input type="range" id="el-opacity" min="0" max="100" value="100"><span class="prop-val" id="el-opacity-val">100%</span></div>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Border</div>
-        <div class="group-content props-group">
-            <div class="prop-row"><label>Width</label><input type="number" id="el-border-width" class="mini-input" min="0" max="20" value="0"></div>
-            <div class="prop-row"><label>Color</label><input type="color" id="el-border-color" value="#000000"></div>
-            <div class="prop-row"><label>Radius</label><input type="number" id="el-border-radius" class="mini-input" min="0" max="100" value="0"></div>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Shape Fill</div>
-        <div class="group-content">
-            <div class="prop-row"><label>Fill</label><input type="color" id="shape-fill" value="#4a90d9"></div>
-            <div class="prop-row"><label>Stroke</label><input type="color" id="shape-stroke" value="#2c5f8a"></div>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Image Corrections</div>
-        <div id="image-corrections" class="group-content props-group">
-            <div class="prop-row"><label>Brightness</label><input type="range" id="img-brightness" min="0" max="200" value="100"></div>
-            <div class="prop-row"><label>Contrast</label><input type="range" id="img-contrast" min="0" max="200" value="100"></div>
-            <div class="prop-row"><label>Saturation</label><input type="range" id="img-saturation" min="0" max="200" value="100"></div>
-            <div class="prop-row"><label>Hue</label><input type="range" id="img-hue" min="0" max="360" value="0"></div>
-            <div class="prop-row"><label>Blur</label><input type="range" id="img-blur" min="0" max="20" value="0"></div>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Crop</div>
-        <div class="group-content props-group">
-            <div class="prop-row"><label>Top</label><input type="range" id="img-cropTop" min="0" max="50" value="0"></div>
-            <div class="prop-row"><label>Right</label><input type="range" id="img-cropRight" min="0" max="50" value="0"></div>
-            <div class="prop-row"><label>Bottom</label><input type="range" id="img-cropBottom" min="0" max="50" value="0"></div>
-            <div class="prop-row"><label>Left</label><input type="range" id="img-cropLeft" min="0" max="50" value="0"></div>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Arrange</div>
-        <div class="group-content">
-            <button id="btn-bring-front" class="ribbon-btn-sm" title="Bring to Front">⬆️ Front</button>
-            <button id="btn-send-back" class="ribbon-btn-sm" title="Send to Back">⬇️ Back</button>
-            <button id="btn-lock" class="ribbon-btn-sm" title="Lock/Unlock">🔒 Lock</button>
-        </div>
-    </div>
-</div>
-
-<!-- LAYOUT PANEL -->
-<div id="panel-layout" class="ribbon-panel">
-    <div class="ribbon-group">
-        <div class="group-label">Margins</div>
-        <div class="group-content">
-            <button class="margin-preset" data-preset="normal">📐 Normal</button>
-            <button class="margin-preset" data-preset="narrow">📐 Narrow</button>
-            <button class="margin-preset" data-preset="moderate">📐 Moderate</button>
-            <button class="margin-preset" data-preset="wide">📐 Wide</button>
-            <button class="margin-preset" data-preset="mirrored">📐 Mirrored</button>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Custom Margins (px)</div>
-        <div class="group-content props-group">
-            <div class="prop-row"><label>Top</label><input type="number" id="marginTop" class="mini-input" value="96"></div>
-            <div class="prop-row"><label>Bottom</label><input type="number" id="marginBottom" class="mini-input" value="96"></div>
-            <div class="prop-row"><label>Left</label><input type="number" id="marginLeft" class="mini-input" value="96"></div>
-            <div class="prop-row"><label>Right</label><input type="number" id="marginRight" class="mini-input" value="96"></div>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Orientation</div>
-        <div class="group-content">
-            <button id="btn-portrait" class="ribbon-btn"><span class="rbtn-icon">📃</span><span class="rbtn-label">Portrait</span></button>
-            <button id="btn-landscape" class="ribbon-btn"><span class="rbtn-icon">📃</span><span class="rbtn-label">Landscape</span></button>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Size</div>
-        <div class="group-content">
-            <select id="page-size" class="tool-select">
-                <option value="letter">Letter (8.5×11)</option>
-                <option value="a4">A4 (210×297mm)</option>
-                <option value="a3">A3</option>
-                <option value="legal">Legal</option>
-                <option value="a5">A5</option>
-                <option value="b5">B5</option>
-                <option value="executive">Executive</option>
-                <option value="tabloid">Tabloid</option>
-            </select>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Columns</div>
-        <div class="group-content">
-            <button class="column-option ribbon-btn-sm" data-columns="1">One</button>
-            <button class="column-option ribbon-btn-sm" data-columns="2">Two</button>
-            <button class="column-option ribbon-btn-sm" data-columns="3">Three</button>
-        </div>
-    </div>
-</div>
-
-<!-- VIEW PANEL -->
-<div id="panel-view" class="ribbon-panel">
-    <div class="ribbon-group">
-        <div class="group-label">Views</div>
-        <div class="group-content">
-            <button class="view-mode-btn ribbon-btn" data-mode="read"><span class="rbtn-icon">📖</span><span class="rbtn-label">Read Mode</span></button>
-            <button class="view-mode-btn ribbon-btn active" data-mode="print-layout"><span class="rbtn-icon">🖨️</span><span class="rbtn-label">Print Layout</span></button>
-            <button class="view-mode-btn ribbon-btn" data-mode="web-layout"><span class="rbtn-icon">🌐</span><span class="rbtn-label">Web Layout</span></button>
-            <button class="view-mode-btn ribbon-btn" data-mode="outline"><span class="rbtn-icon">📋</span><span class="rbtn-label">Outline</span></button>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Immersive</div>
-        <div class="group-content">
-            <button class="view-mode-btn ribbon-btn" data-mode="focus"><span class="rbtn-icon">🎯</span><span class="rbtn-label">Focus</span></button>
-            <button class="view-mode-btn ribbon-btn" data-mode="immersive"><span class="rbtn-icon">📺</span><span class="rbtn-label">Immersive Reader</span></button>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Zoom</div>
-        <div class="group-content">
-            <button id="btn-zoom-in" class="ribbon-btn-sm">➕ Zoom In</button>
-            <button id="btn-zoom-out" class="ribbon-btn-sm">➖ Zoom Out</button>
-            <button id="btn-zoom-fit" class="ribbon-btn-sm">🔲 100%</button>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Show</div>
-        <div class="group-content">
-            <button id="btn-ruler" class="ribbon-btn-sm">📏 Ruler</button>
-            <button id="btn-gridlines" class="ribbon-btn-sm">⊞ Gridlines</button>
-            <button id="btn-nav-pane" class="ribbon-btn-sm">📑 Navigation</button>
-        </div>
-    </div>
-    <div class="ribbon-sep"></div>
-    <div class="ribbon-group">
-        <div class="group-label">Page Movement</div>
-        <div class="group-content">
-            <button class="ribbon-btn-sm" onclick="ViewManager.setPageMovement('vertical')">↕ Vertical</button>
-            <button class="ribbon-btn-sm" onclick="ViewManager.setPageMovement('side')">↔ Side by Side</button>
-        </div>
-    </div>
-</div>
-</div>
-
-<!-- FONT DROPDOWN -->
-<div id="font-dropdown" class="font-dropdown">
-    <input type="text" id="font-search" class="font-search" placeholder="Search fonts...">
-    <div id="font-list" class="font-list"></div>
-</div>
-
-<!-- ===== MAIN AREA ===== -->
-<div class="main-area">
-    <!-- Navigation Panel -->
-    <div id="nav-panel" class="nav-panel">
-        <div class="nav-header">Pages</div>
-        <div id="nav-thumbnails" class="nav-thumbnails"></div>
-        <div id="outline-content" class="outline-content"></div>
+    <!-- FONT DROPDOWN -->
+    <div id="font-dropdown" class="font-dropdown">
+        <input type="text" id="font-search" class="font-search" placeholder="Search fonts...">
+        <div id="font-list" class="font-list"></div>
     </div>
 
-    <!-- Document Area -->
-    <div id="document-area" class="document-area print-layout">
-        <div id="pages-container" class="pages-container vertical-scroll"></div>
-    </div>
-</div>
+    <!-- ===== MAIN AREA ===== -->
+    <div class="main-area">
+        <!-- Navigation Panel -->
+        <div id="nav-panel" class="nav-panel">
+            <div class="nav-header">Pages</div>
+            <div id="nav-thumbnails" class="nav-thumbnails"></div>
+            <div id="outline-content" class="outline-content"></div>
+        </div>
 
-<!-- ===== FIND & REPLACE ===== -->
-<div id="find-replace-panel" class="find-replace-panel">
-    <div class="fr-header"><span>Find & Replace</span><button onclick="this.parentElement.parentElement.classList.remove('show')">✕</button></div>
-    <div class="fr-row"><label>Find:</label><input type="text" id="find-input"><button id="find-btn">Find</button></div>
-    <div class="fr-row"><label>Replace:</label><input type="text" id="replace-input"><button id="replace-btn">Replace</button><button id="replace-all-btn">All</button></div>
-</div>
-
-<!-- ===== DIALOGS ===== -->
-
-<!-- Table Dialog -->
-<div id="table-dialog" class="dialog-overlay">
-    <div class="dialog">
-        <div class="dialog-header"><h3>Insert Table</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button></div>
-        <div class="dialog-body">
-            <div id="table-grid-selector" class="table-grid"></div>
-            <div id="table-size-label" class="table-size-label">Select size</div>
+        <!-- Document Area -->
+        <div id="document-area" class="document-area print-layout">
+            <div id="pages-container" class="pages-container vertical-scroll"></div>
         </div>
     </div>
-</div>
 
-<!-- Watermark Dialog -->
-<div id="watermark-dialog" class="dialog-overlay">
-    <div class="dialog">
-        <div class="dialog-header"><h3>Insert Watermark</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button></div>
-        <div class="dialog-body">
-            <div class="form-group"><label>Text</label><input type="text" id="wm-text" value="CONFIDENTIAL"></div>
-            <div class="form-group"><label>Font Size</label><input type="number" id="wm-size" value="72"></div>
-            <div class="form-group"><label>Color</label><input type="color" id="wm-color" value="#cccccc"></div>
-            <div class="form-group"><label>Opacity</label><input type="range" id="wm-opacity" min="0" max="100" value="20"></div>
-            <div class="form-group"><label>Rotation</label><input type="range" id="wm-rotation" min="-90" max="90" value="-45"></div>
-            <button class="dialog-btn primary" onclick="Toolbar.insertWatermark(document.getElementById('wm-text').value,{fontSize:parseInt(document.getElementById('wm-size').value),color:document.getElementById('wm-color').value,opacity:document.getElementById('wm-opacity').value/100,rotation:parseInt(document.getElementById('wm-rotation').value)})">Insert</button>
+    <!-- ===== FIND & REPLACE ===== -->
+    <div id="find-replace-panel" class="find-replace-panel">
+        <div class="fr-header"><span>Find & Replace</span><button
+                onclick="this.parentElement.parentElement.classList.remove('show')">✕</button></div>
+        <div class="fr-row"><label>Find:</label><input type="text" id="find-input"><button id="find-btn">Find</button>
         </div>
+        <div class="fr-row"><label>Replace:</label><input type="text" id="replace-input"><button
+                id="replace-btn">Replace</button><button id="replace-all-btn">All</button></div>
     </div>
-</div>
 
-<!-- Signature Dialog -->
-<div id="signature-dialog" class="dialog-overlay">
-    <div class="dialog dialog-wide">
-        <div class="dialog-header"><h3>Add Signature</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button></div>
-        <div class="dialog-body">
-            <div class="sig-tabs">
-                <button class="sig-tab active" data-sig="draw">Draw</button>
-                <button class="sig-tab" data-sig="type">Type</button>
-                <button class="sig-tab" data-sig="upload">Upload</button>
+    <!-- ===== DIALOGS ===== -->
+
+    <!-- Table Dialog -->
+    <div id="table-dialog" class="dialog-overlay">
+        <div class="dialog">
+            <div class="dialog-header">
+                <h3>Insert Table</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button>
             </div>
-            <div class="sig-content">
-                <canvas id="sig-canvas" class="sig-canvas"></canvas>
-            </div>
-            <div class="sig-actions">
-                <button id="sig-clear" class="dialog-btn">Clear</button>
-                <button id="sig-insert" class="dialog-btn primary">Insert Signature</button>
+            <div class="dialog-body">
+                <div id="table-grid-selector" class="table-grid"></div>
+                <div id="table-size-label" class="table-size-label">Select size</div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Page Number Dialog -->
-<div id="pagenum-dialog" class="dialog-overlay">
-    <div class="dialog">
-        <div class="dialog-header"><h3>Page Numbers</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button></div>
-        <div class="dialog-body">
-            <div class="form-group"><label>Style</label><select id="pagenum-style"><option value="simple">Simple</option><option value="decorated">— 1 —</option><option value="page-of">Page 1 of N</option></select></div>
-            <div class="form-group"><label>Format</label><select id="pagenum-format"><option value="decimal">1, 2, 3</option><option value="roman">i, ii, iii</option><option value="roman-upper">I, II, III</option><option value="alpha">a, b, c</option><option value="alpha-upper">A, B, C</option></select></div>
-            <div class="form-group"><label>Position</label><select id="pagenum-position"><option value="bottom-center">Bottom Center</option><option value="bottom-left">Bottom Left</option><option value="bottom-right">Bottom Right</option><option value="top-center">Top Center</option><option value="top-left">Top Left</option><option value="top-right">Top Right</option></select></div>
-            <div class="form-group"><label>Start From</label><input type="number" id="pagenum-start" value="1" min="1"></div>
-            <button id="pagenum-apply" class="dialog-btn primary" onclick="DocModel.pageSettings.pageNumberStyle='simple';Canvas.render();Toolbar.closeAllDialogs()">Apply</button>
+    <!-- Watermark Dialog -->
+    <div id="watermark-dialog" class="dialog-overlay">
+        <div class="dialog">
+            <div class="dialog-header">
+                <h3>Insert Watermark</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button>
+            </div>
+            <div class="dialog-body">
+                <!-- TABS -->
+                <div class="wm-tabs">
+                    <button class="wm-tab active" onclick="Toolbar.switchWatermarkTab('text')">Text</button>
+                    <button class="wm-tab" onclick="Toolbar.switchWatermarkTab('image')">Image / Logo</button>
+                </div>
+
+                <!-- TEXT TAB -->
+                <div id="wm-tab-text" class="wm-tab-content active">
+                    <div class="form-group"><label>Text</label><input type="text" id="wm-text" value="CONFIDENTIAL">
+                    </div>
+                    <div class="form-group"><label>Font Size</label><input type="number" id="wm-size" value="72"></div>
+                    <div class="form-group"><label>Color</label><input type="color" id="wm-color" value="#cccccc"></div>
+                </div>
+
+                <!-- IMAGE TAB -->
+                <div id="wm-tab-image" class="wm-tab-content">
+                    <div class="form-group">
+                        <label>Upload Logo</label>
+                        <input type="file" id="wm-image-upload" accept="image/*">
+                    </div>
+                    <div class="form-help">Supported: PNG, JPG, SVG</div>
+                </div>
+
+                <!-- SHARED CONTROLS -->
+                <div class="separator-line"></div>
+                <div class="form-group">
+                    <label>Opacity: <span id="wm-opacity-val">20%</span></label>
+                    <input type="range" id="wm-opacity" min="0" max="100" value="20"
+                        oninput="document.getElementById('wm-opacity-val').textContent = this.value + '%'">
+                </div>
+                <div class="form-group">
+                    <label>Rotation: <span id="wm-rotation-val">-45°</span></label>
+                    <input type="range" id="wm-rotation" min="-90" max="90" value="-45"
+                        oninput="document.getElementById('wm-rotation-val').textContent = this.value + '°'">
+                </div>
+                <div class="form-group">
+                    <label>Blur: <span id="wm-blur-val">0px</span></label>
+                    <input type="range" id="wm-blur" min="0" max="20" value="0"
+                        oninput="document.getElementById('wm-blur-val').textContent = this.value + 'px'">
+                </div>
+
+                <div class="dialog-footer">
+                    <button class="dialog-btn" onclick="Toolbar.closeAllDialogs()">Cancel</button>
+                    <button class="dialog-btn primary" onclick="Toolbar.handleInsertWatermark()">Insert
+                        Watermark</button>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Link Dialog -->
-<div id="link-dialog" class="dialog-overlay">
-    <div class="dialog">
-        <div class="dialog-header"><h3>Insert Link</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button></div>
-        <div class="dialog-body">
-            <div class="form-group"><label>Text</label><input type="text" id="link-text" value="Click here"></div>
-            <div class="form-group"><label>URL</label><input type="url" id="link-url" placeholder="https://"></div>
-            <button class="dialog-btn primary" onclick="const el=Elements.createLink(150,150,document.getElementById('link-text').value,document.getElementById('link-url').value);DocModel.addElement(DocModel.activePageIndex,el);Canvas.render();Toolbar.closeAllDialogs()">Insert</button>
+    <!-- Signature Dialog -->
+    <div id="signature-dialog" class="dialog-overlay">
+        <div class="dialog dialog-wide">
+            <div class="dialog-header">
+                <h3>Add Signature</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button>
+            </div>
+            <div class="dialog-body">
+                <div class="sig-tabs">
+                    <button class="sig-tab active" data-sig="draw">Draw</button>
+                    <button class="sig-tab" data-sig="type">Type</button>
+                    <button class="sig-tab" data-sig="upload">Upload</button>
+                </div>
+                <div class="sig-content">
+                    <canvas id="sig-canvas" class="sig-canvas"></canvas>
+                </div>
+                <div class="sig-actions">
+                    <button id="sig-clear" class="dialog-btn">Clear</button>
+                    <button id="sig-insert" class="dialog-btn primary">Insert Signature</button>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- ===== OCR PROGRESS ===== -->
-<div id="ocr-progress" class="ocr-progress"><div id="ocr-progress-fill" class="ocr-fill"></div></div>
-
-<!-- ===== STATUS BAR ===== -->
-<div class="status-bar">
-    <div class="status-left"><span id="status-text">Ready</span></div>
-    <div class="status-center"><span id="page-info"></span></div>
-    <div class="status-right">
-        <button id="btn-zoom-out" class="status-btn">−</button>
-        <span id="zoom-level">100%</span>
-        <button id="btn-zoom-in" class="status-btn">+</button>
+    <!-- Page Number Dialog -->
+    <div id="pagenum-dialog" class="dialog-overlay">
+        <div class="dialog">
+            <div class="dialog-header">
+                <h3>Page Numbers</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button>
+            </div>
+            <div class="dialog-body">
+                <div class="form-group"><label>Style</label><select id="pagenum-style">
+                        <option value="simple">Simple</option>
+                        <option value="decorated">— 1 —</option>
+                        <option value="page-of">Page 1 of N</option>
+                    </select></div>
+                <div class="form-group"><label>Format</label><select id="pagenum-format">
+                        <option value="decimal">1, 2, 3</option>
+                        <option value="roman">i, ii, iii</option>
+                        <option value="roman-upper">I, II, III</option>
+                        <option value="alpha">a, b, c</option>
+                        <option value="alpha-upper">A, B, C</option>
+                    </select></div>
+                <div class="form-group"><label>Position</label><select id="pagenum-position">
+                        <option value="bottom-center">Bottom Center</option>
+                        <option value="bottom-left">Bottom Left</option>
+                        <option value="bottom-right">Bottom Right</option>
+                        <option value="top-center">Top Center</option>
+                        <option value="top-left">Top Left</option>
+                        <option value="top-right">Top Right</option>
+                    </select></div>
+                <div class="form-group"><label>Start From</label><input type="number" id="pagenum-start" value="1"
+                        min="1"></div>
+                <button id="pagenum-apply" class="dialog-btn primary">Apply</button>
+            </div>
+        </div>
     </div>
-</div>
 
-<!-- ===== CDN SCRIPTS ===== -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
-<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-<script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- Link Dialog -->
+    <div id="link-dialog" class="dialog-overlay">
+        <div class="dialog">
+            <div class="dialog-header">
+                <h3>Insert Link</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button>
+            </div>
+            <div class="dialog-body">
+                <div class="form-group"><label>Text</label><input type="text" id="link-text" value="Click here"></div>
+                <div class="form-group"><label>URL</label><input type="url" id="link-url" placeholder="https://"></div>
+                <button class="dialog-btn primary"
+                    onclick="const el=Elements.createLink(150,150,document.getElementById('link-text').value,document.getElementById('link-url').value);DocModel.addElement(DocModel.activePageIndex,el);Canvas.render();Toolbar.closeAllDialogs()">Insert</button>
+            </div>
+        </div>
+    </div>
 
-<!-- App Scripts -->
-<script src="js/fonts.js"></script>
-<script src="js/document.js"></script>
-<script src="js/elements.js"></script>
-<script src="js/canvas.js"></script>
-<script src="js/toolbar.js"></script>
-<script src="js/views.js"></script>
-<script src="js/pdf-handler.js"></script>
-<script src="js/ocr.js"></script>
-<script src="js/export.js"></script>
-<script src="js/page-settings.js"></script>
-<script src="js/app.js"></script>
+    <!-- ===== OCR PROGRESS ===== -->
+    <div id="ocr-progress" class="ocr-progress">
+        <div id="ocr-progress-fill" class="ocr-fill"></div>
+    </div>
+
+    <!-- ===== STATUS BAR ===== -->
+    <div class="status-bar">
+        <div class="status-left"><span id="status-text">Ready</span></div>
+        <div class="status-center"><span id="page-info"></span></div>
+        <div class="status-right">
+            <button id="btn-zoom-out" class="status-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg></button>
+            <span id="zoom-level">100%</span>
+            <button id="btn-zoom-in" class="status-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    <line x1="11" y1="8" x2="11" y2="14"></line>
+                    <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg></button>
+        </div>
+    </div>
+
+    <!-- ===== CDN SCRIPTS ===== -->
+    <!-- PDF.js (ES Module) -->
+    <script type="module">
+        import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.min.mjs';
+        window.pdfjsLib = pdfjsLib;
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.worker.min.mjs';
+        console.log("PDF.js loaded successfully (Module)");
+    </script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <!-- App Scripts -->
+    <script src="js/fonts.js?v=10"></script>
+    <script src="js/document.js?v=10"></script>
+    <script src="js/elements.js?v=10"></script>
+    <script src="js/canvas.js?v=10"></script>
+    <script src="js/toolbar.js?v=10"></script>
+    <script src="js/views.js?v=10"></script>
+    <script src="js/pdf-handler.js?v=10"></script>
+    <script src="js/ocr.js?v=10"></script>
+    <script src="js/export.js?v=10"></script>
+    <script src="js/page-settings.js?v=10"></script>
+    <script src="js/app.js?v=10"></script>
 </body>
+
 </html>

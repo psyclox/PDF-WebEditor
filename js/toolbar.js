@@ -11,13 +11,21 @@ const Toolbar = {
 
     setupTabSwitching() {
         document.querySelectorAll('.ribbon-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
+            tab.addEventListener('click', (e) => {
+                const tabName = tab.dataset.tab;
+
+                // File tab is handled separately by App.setupFileMenu
+                if (tabName === 'file') return;
+
+                // Close file menu if open
+                document.getElementById('file-menu')?.classList.remove('show');
+
                 document.querySelectorAll('.ribbon-tab').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.ribbon-panel').forEach(p => p.classList.remove('active'));
                 tab.classList.add('active');
-                const panel = document.getElementById(`panel-${tab.dataset.tab}`);
+                const panel = document.getElementById(`panel-${tabName}`);
                 if (panel) panel.classList.add('active');
-                this.activeTab = tab.dataset.tab;
+                this.activeTab = tabName;
             });
         });
     },
@@ -26,7 +34,8 @@ const Toolbar = {
         const fontSelect = document.getElementById('font-family');
         const fontSearch = document.getElementById('font-search');
         const fontList = document.getElementById('font-list');
-        if (!fontSelect || !fontList) return;
+        const fontDropdown = document.getElementById('font-dropdown');
+        if (!fontSelect || !fontList || !fontDropdown) return;
 
         const renderFonts = (fonts) => {
             fontList.innerHTML = '';
@@ -65,9 +74,9 @@ const Toolbar = {
 
         fontSelect.addEventListener('click', (e) => {
             e.stopPropagation();
-            const dropdown = document.getElementById('font-dropdown');
-            dropdown.classList.toggle('show');
-            if (dropdown.classList.contains('show')) {
+            const isOpen = fontDropdown.classList.contains('show');
+            fontDropdown.classList.toggle('show');
+            if (!isOpen) {
                 renderFonts(FontManager.fonts);
                 fontSearch?.focus();
             }
@@ -80,8 +89,10 @@ const Toolbar = {
 
         fontSearch?.addEventListener('click', (e) => e.stopPropagation());
 
-        document.addEventListener('click', () => {
-            document.getElementById('font-dropdown')?.classList.remove('show');
+        document.addEventListener('click', (e) => {
+            if (!fontDropdown.contains(e.target) && !fontSelect.contains(e.target)) {
+                fontDropdown.classList.remove('show');
+            }
         });
     },
 
@@ -137,10 +148,30 @@ const Toolbar = {
         });
 
         // Alignment
-        document.getElementById('btn-align-left')?.addEventListener('click', () => this.applyToSelected('textAlign', 'left'));
-        document.getElementById('btn-align-center')?.addEventListener('click', () => this.applyToSelected('textAlign', 'center'));
-        document.getElementById('btn-align-right')?.addEventListener('click', () => this.applyToSelected('textAlign', 'right'));
-        document.getElementById('btn-align-justify')?.addEventListener('click', () => this.applyToSelected('textAlign', 'justify'));
+        document.getElementById('btn-align-left')?.addEventListener('click', () => {
+            this.applyToSelected('textAlign', 'left');
+            this.updateAlignButtons('left');
+        });
+        document.getElementById('btn-align-center')?.addEventListener('click', () => {
+            this.applyToSelected('textAlign', 'center');
+            this.updateAlignButtons('center');
+        });
+        document.getElementById('btn-align-right')?.addEventListener('click', () => {
+            this.applyToSelected('textAlign', 'right');
+            this.updateAlignButtons('right');
+        });
+        document.getElementById('btn-align-justify')?.addEventListener('click', () => {
+            this.applyToSelected('textAlign', 'justify');
+            this.updateAlignButtons('justify');
+        });
+
+        // Lists
+        document.getElementById('btn-list-ul')?.addEventListener('click', () => {
+            document.execCommand('insertUnorderedList');
+        });
+        document.getElementById('btn-list-ol')?.addEventListener('click', () => {
+            document.execCommand('insertOrderedList');
+        });
 
         // Line Spacing
         document.getElementById('line-spacing')?.addEventListener('change', (e) => {
@@ -169,7 +200,10 @@ const Toolbar = {
         document.getElementById('btn-insert-textbox')?.addEventListener('click', () => this.insertElement('textbox'));
         document.getElementById('btn-insert-image')?.addEventListener('click', () => this.insertImage());
         document.getElementById('btn-insert-table')?.addEventListener('click', () => this.showTableDialog());
-        document.getElementById('btn-insert-shape')?.addEventListener('click', () => this.showShapeMenu());
+        document.getElementById('btn-insert-shape')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showShapeMenu();
+        });
         document.getElementById('btn-insert-watermark')?.addEventListener('click', () => this.showWatermarkDialog());
         document.getElementById('btn-insert-signature')?.addEventListener('click', () => this.showSignatureDialog());
         document.getElementById('btn-insert-pagenum')?.addEventListener('click', () => this.showPageNumberDialog());
@@ -177,16 +211,39 @@ const Toolbar = {
         document.getElementById('btn-insert-footer')?.addEventListener('click', () => this.insertHeaderFooter('footer'));
         document.getElementById('btn-insert-comment')?.addEventListener('click', () => this.insertElement('comment'));
         document.getElementById('btn-insert-link')?.addEventListener('click', () => this.showLinkDialog());
-        document.getElementById('btn-insert-pagebreak')?.addEventListener('click', () => DocModel.addPage(DocModel.activePageIndex));
+        document.getElementById('btn-insert-pagebreak')?.addEventListener('click', () => {
+            DocModel.addPage(DocModel.activePageIndex);
+            Canvas.render();
+        });
 
         // Page operations
         document.getElementById('btn-add-page')?.addEventListener('click', () => {
             DocModel.addPage(DocModel.activePageIndex);
             Canvas.render();
+            App.updatePageInfo();
         });
         document.getElementById('btn-delete-page')?.addEventListener('click', () => {
+            if (DocModel.pages.length <= 1) {
+                document.getElementById('status-text').textContent = 'Cannot delete the only page';
+                return;
+            }
             DocModel.deletePage(DocModel.activePageIndex);
             Canvas.render();
+            App.updatePageInfo();
+        });
+
+        document.getElementById('btn-page-move-up')?.addEventListener('click', () => {
+            if (DocModel.movePage(DocModel.activePageIndex, -1)) {
+                Canvas.render();
+                App.updatePageInfo();
+            }
+        });
+
+        document.getElementById('btn-page-move-down')?.addEventListener('click', () => {
+            if (DocModel.movePage(DocModel.activePageIndex, 1)) {
+                Canvas.render();
+                App.updatePageInfo();
+            }
         });
 
         // Element z-order
@@ -200,7 +257,7 @@ const Toolbar = {
         });
 
         // Image color correction sliders
-        ['brightness', 'contrast', 'saturation', 'hue', 'blur', 'opacity'].forEach(prop => {
+        ['brightness', 'contrast', 'saturation', 'hue', 'blur'].forEach(prop => {
             document.getElementById(`img-${prop}`)?.addEventListener('input', (e) => {
                 this.applyToSelected(prop, parseFloat(e.target.value));
             });
@@ -216,7 +273,26 @@ const Toolbar = {
         // Margin presets
         document.querySelectorAll('.margin-preset').forEach(btn => {
             btn.addEventListener('click', () => {
-                DocModel.setMarginPreset(btn.dataset.preset);
+                const preset = btn.dataset.preset;
+                DocModel.setMarginPreset(preset);
+                // Update UI inputs
+                const m = DocModel.marginPresets[preset];
+                if (m) {
+                    document.getElementById('marginTop') && (document.getElementById('marginTop').value = m.top);
+                    document.getElementById('marginBottom') && (document.getElementById('marginBottom').value = m.bottom);
+                    document.getElementById('marginLeft') && (document.getElementById('marginLeft').value = m.left);
+                    document.getElementById('marginRight') && (document.getElementById('marginRight').value = m.right);
+                }
+                Canvas.render();
+                document.getElementById('status-text').textContent = `Margins set to ${preset}`;
+            });
+        });
+
+        // Custom margin inputs
+        ['marginTop', 'marginBottom', 'marginLeft', 'marginRight'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', (e) => {
+                DocModel.pageSettings[id] = parseInt(e.target.value) || 96;
+                DocModel.saveState();
                 Canvas.render();
             });
         });
@@ -225,34 +301,54 @@ const Toolbar = {
         document.getElementById('page-size')?.addEventListener('change', (e) => {
             DocModel.setPageSize(e.target.value);
             Canvas.render();
+            document.getElementById('status-text').textContent = `Page size: ${e.target.value}`;
         });
 
         // Orientation
         document.getElementById('btn-portrait')?.addEventListener('click', () => {
             DocModel.setOrientation('portrait');
             Canvas.render();
+            document.getElementById('status-text').textContent = 'Orientation: Portrait';
         });
         document.getElementById('btn-landscape')?.addEventListener('click', () => {
             DocModel.setOrientation('landscape');
             Canvas.render();
+            document.getElementById('status-text').textContent = 'Orientation: Landscape';
+        });
+
+        // Column buttons
+        document.querySelectorAll('.column-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                DocModel.pageSettings.columns = parseInt(btn.dataset.columns) || 1;
+                DocModel.saveState();
+                Canvas.render();
+            });
         });
 
         // Zoom controls
-        document.getElementById('btn-zoom-in')?.addEventListener('click', () => Canvas.setZoom(Canvas.zoom + 0.1));
-        document.getElementById('btn-zoom-out')?.addEventListener('click', () => Canvas.setZoom(Canvas.zoom - 0.1));
+        const allZoomIn = document.querySelectorAll('#btn-zoom-in');
+        const allZoomOut = document.querySelectorAll('#btn-zoom-out');
+        allZoomIn.forEach(btn => btn.addEventListener('click', () => Canvas.setZoom(Math.min(3, Canvas.zoom + 0.1))));
+        allZoomOut.forEach(btn => btn.addEventListener('click', () => Canvas.setZoom(Math.max(0.25, Canvas.zoom - 0.1))));
         document.getElementById('btn-zoom-fit')?.addEventListener('click', () => Canvas.setZoom(1));
 
         // View toggles
-        document.getElementById('btn-ruler')?.addEventListener('click', () => {
+        document.getElementById('btn-ruler')?.addEventListener('click', function () {
             Canvas.showRuler = !Canvas.showRuler;
-            document.getElementById('ruler-container')?.classList.toggle('hidden', !Canvas.showRuler);
-        });
-        document.getElementById('btn-gridlines')?.addEventListener('click', () => {
-            Canvas.showGridlines = !Canvas.showGridlines;
+            this.classList.toggle('active', Canvas.showRuler);
             Canvas.render();
         });
-        document.getElementById('btn-nav-pane')?.addEventListener('click', () => {
-            document.getElementById('nav-panel')?.classList.toggle('show');
+        document.getElementById('btn-gridlines')?.addEventListener('click', function () {
+            Canvas.showGridlines = !Canvas.showGridlines;
+            this.classList.toggle('active', Canvas.showGridlines);
+            Canvas.render();
+        });
+        document.getElementById('btn-nav-pane')?.addEventListener('click', function () {
+            const panel = document.getElementById('nav-panel');
+            if (panel) {
+                panel.classList.toggle('show');
+                this.classList.toggle('active', panel.classList.contains('show'));
+            }
         });
 
         // Undo/Redo
@@ -263,27 +359,51 @@ const Toolbar = {
         document.getElementById('btn-new')?.addEventListener('click', () => this.newDocument());
         document.getElementById('btn-open')?.addEventListener('click', () => this.openFile());
         document.getElementById('btn-save')?.addEventListener('click', () => this.saveDocument());
-        document.getElementById('btn-export-pdf')?.addEventListener('click', () => ExportManager.exportPDF());
-        document.getElementById('btn-export-png')?.addEventListener('click', () => ExportManager.exportPNG());
-        document.getElementById('btn-export-docx')?.addEventListener('click', () => ExportManager.exportDOCX());
+        document.getElementById('btn-export-pdf')?.addEventListener('click', () => {
+            document.getElementById('file-menu')?.classList.remove('show');
+            ExportManager.exportPDF();
+        });
+        document.getElementById('btn-export-png')?.addEventListener('click', () => {
+            document.getElementById('file-menu')?.classList.remove('show');
+            ExportManager.exportPNG();
+        });
+        document.getElementById('btn-export-docx')?.addEventListener('click', () => {
+            document.getElementById('file-menu')?.classList.remove('show');
+            ExportManager.exportDOCX();
+        });
 
         // Lock/unlock
         document.getElementById('btn-lock')?.addEventListener('click', () => {
             DocModel.selectedElements.forEach(id => {
                 const el = DocModel.getElement(DocModel.activePageIndex, id);
-                if (el) DocModel.updateElement(DocModel.activePageIndex, id, { locked: !el.locked });
+                if (el) {
+                    DocModel.updateElement(DocModel.activePageIndex, id, { locked: !el.locked });
+                    document.getElementById('status-text').textContent = el.locked ? 'Element unlocked' : 'Element locked';
+                }
             });
             Canvas.render();
         });
 
+        // Group/Ungroup
+        document.getElementById('btn-group')?.addEventListener('click', () => {
+            Canvas.groupSelected();
+        });
+        document.getElementById('btn-ungroup')?.addEventListener('click', () => {
+            Canvas.ungroupSelected();
+        });
+
         // Rotation
         document.getElementById('el-rotation')?.addEventListener('input', (e) => {
-            this.applyToSelected('rotation', parseInt(e.target.value));
+            const val = parseInt(e.target.value);
+            this.applyToSelected('rotation', val);
+            document.getElementById('el-rotation-val').textContent = val + '°';
         });
 
         // Element opacity
         document.getElementById('el-opacity')?.addEventListener('input', (e) => {
-            this.applyToSelected('opacity', parseFloat(e.target.value) / 100);
+            const val = parseFloat(e.target.value);
+            this.applyToSelected('opacity', val / 100);
+            document.getElementById('el-opacity-val').textContent = Math.round(val) + '%';
         });
 
         // Border controls
@@ -299,6 +419,7 @@ const Toolbar = {
 
         // OCR button
         document.getElementById('btn-ocr')?.addEventListener('click', () => {
+            document.getElementById('file-menu')?.classList.remove('show');
             if (typeof OCRManager !== 'undefined') OCRManager.runOCR();
         });
 
@@ -314,8 +435,67 @@ const Toolbar = {
             if (typeof ViewManager !== 'undefined') ViewManager.toggleDarkMode();
         });
 
-        // Find/Replace
-        document.getElementById('btn-find')?.addEventListener('click', () => this.showFindReplace());
+        // Find/Replace  
+        const findBtns = document.querySelectorAll('#btn-find');
+        findBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('file-menu')?.classList.remove('show');
+                this.showFindReplace();
+            });
+        });
+
+        // Signature tabs
+        document.querySelectorAll('.sig-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.sig-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const sigContent = document.querySelector('.sig-content');
+                if (!sigContent) return;
+
+                const mode = tab.dataset.sig;
+                if (mode === 'draw') {
+                    sigContent.innerHTML = '<canvas id="sig-canvas" class="sig-canvas"></canvas>';
+                    this.initSignaturePad();
+                } else if (mode === 'type') {
+                    sigContent.innerHTML = `
+                        <input type="text" id="sig-type-input" placeholder="Type your signature" 
+                            style="width:100%;padding:12px;font-family:'Dancing Script',cursive;font-size:32px;
+                            background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-color);
+                            border-radius:6px;text-align:center;">
+                    `;
+                } else if (mode === 'upload') {
+                    sigContent.innerHTML = `
+                        <div style="text-align:center;padding:40px;">
+                            <button id="sig-upload-btn" class="dialog-btn" style="font-size:14px;">📁 Choose Image</button>
+                            <p style="color:var(--text-secondary);margin-top:8px;">Upload a signature image (PNG, JPG)</p>
+                        </div>
+                    `;
+                    document.getElementById('sig-upload-btn')?.addEventListener('click', () => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (ev) => {
+                            const file = ev.target.files[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                sigContent.innerHTML = `<img src="${e.target.result}" style="max-width:100%;max-height:150px;object-fit:contain;">`;
+                                sigContent.dataset.uploadedSrc = e.target.result;
+                            };
+                            reader.readAsDataURL(file);
+                        };
+                        input.click();
+                    });
+                }
+            });
+        });
+    },
+
+    updateAlignButtons(active) {
+        ['left', 'center', 'right', 'justify'].forEach(a => {
+            document.getElementById(`btn-align-${a}`)?.classList.toggle('active', a === active);
+        });
     },
 
     toggleStyle(prop, val1, val2) {
@@ -330,6 +510,7 @@ const Toolbar = {
     },
 
     applyToSelected(prop, value) {
+        if (DocModel.selectedElements.length === 0) return;
         DocModel.selectedElements.forEach(id => {
             DocModel.updateElement(DocModel.activePageIndex, id, { [prop]: value });
         });
@@ -350,7 +531,6 @@ const Toolbar = {
         const preset = presets[style];
         if (preset) {
             FontManager.loadFont(preset.fontFamily);
-            this.applyToSelected('__batch', null);
             DocModel.selectedElements.forEach(id => DocModel.updateElement(DocModel.activePageIndex, id, preset));
             Canvas.render();
         }
@@ -369,6 +549,7 @@ const Toolbar = {
         const added = DocModel.addElement(DocModel.activePageIndex, el);
         DocModel.selectedElements = [added.id];
         Canvas.render();
+        document.getElementById('status-text').textContent = `Inserted ${type}`;
     },
 
     insertImage() {
@@ -384,16 +565,17 @@ const Toolbar = {
                 img.onload = () => {
                     const maxW = 400;
                     const ratio = img.height / img.width;
+                    const w = Math.min(img.width, maxW);
                     const el = Elements.createImage(
                         DocModel.pageSettings.marginLeft + 20,
                         DocModel.pageSettings.marginTop + 20,
                         ev.target.result,
-                        Math.min(img.width, maxW),
-                        Math.min(img.width, maxW) * ratio
+                        w, w * ratio
                     );
                     const added = DocModel.addElement(DocModel.activePageIndex, el);
                     DocModel.selectedElements = [added.id];
                     Canvas.render();
+                    document.getElementById('status-text').textContent = 'Image inserted';
                 };
                 img.src = ev.target.result;
             };
@@ -458,11 +640,53 @@ const Toolbar = {
         DocModel.selectedElements = [added.id];
         Canvas.render();
         this.closeAllDialogs();
+        document.getElementById('status-text').textContent = `Inserted ${type} shape`;
     },
 
     showWatermarkDialog() {
         const dialog = document.getElementById('watermark-dialog');
-        if (dialog) dialog.classList.add('show');
+        if (dialog) {
+            dialog.classList.add('show');
+            this.switchWatermarkTab('text'); // Default to text
+        }
+    },
+
+    switchWatermarkTab(type) {
+        document.querySelectorAll('.wm-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.wm-tab-content').forEach(c => c.classList.remove('active'));
+
+        const btnIndex = type === 'text' ? 0 : 1;
+        document.querySelectorAll('.wm-tab')[btnIndex].classList.add('active');
+        document.getElementById(`wm-tab-${type}`).classList.add('active');
+        this._wmType = type;
+    },
+
+    handleInsertWatermark() {
+        const type = this._wmType || 'text';
+        const opacity = document.getElementById('wm-opacity').value / 100;
+        const rotation = parseInt(document.getElementById('wm-rotation').value);
+        const blur = parseInt(document.getElementById('wm-blur').value);
+
+        const options = { opacity, rotation, blur, subType: type };
+
+        if (type === 'text') {
+            const text = document.getElementById('wm-text').value;
+            options.fontSize = parseInt(document.getElementById('wm-size').value);
+            options.color = document.getElementById('wm-color').value;
+            this.insertWatermark(text, options);
+        } else {
+            const fileInput = document.getElementById('wm-image-upload');
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    options.imageSrc = e.target.result;
+                    this.insertWatermark(null, options);
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                alert('Please upload an image.');
+            }
+        }
     },
 
     insertWatermark(text, options) {
@@ -470,13 +694,21 @@ const Toolbar = {
         DocModel.addElement(DocModel.activePageIndex, el);
         Canvas.render();
         this.closeAllDialogs();
+        document.getElementById('status-text').textContent = 'Watermark inserted';
     },
 
     showSignatureDialog() {
         const dialog = document.getElementById('signature-dialog');
         if (dialog) {
             dialog.classList.add('show');
-            this.initSignaturePad();
+            // Reset to draw tab
+            document.querySelectorAll('.sig-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('.sig-tab[data-sig="draw"]')?.classList.add('active');
+            const sigContent = document.querySelector('.sig-content');
+            if (sigContent) {
+                sigContent.innerHTML = '<canvas id="sig-canvas" class="sig-canvas"></canvas>';
+            }
+            setTimeout(() => this.initSignaturePad(), 50);
         }
     },
 
@@ -484,11 +716,14 @@ const Toolbar = {
         const canvas = document.getElementById('sig-canvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
+        canvas.width = canvas.offsetWidth || 400;
+        canvas.height = canvas.offsetHeight || 150;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.strokeStyle = '#000080';
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
 
         let isDrawing = false;
         canvas.onmousedown = (e) => { isDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
@@ -496,27 +731,68 @@ const Toolbar = {
         canvas.onmouseup = () => isDrawing = false;
         canvas.onmouseleave = () => isDrawing = false;
 
+        // Touch support
+        canvas.ontouchstart = (e) => {
+            e.preventDefault(); isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            ctx.beginPath(); ctx.moveTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+        };
+        canvas.ontouchmove = (e) => {
+            if (isDrawing) {
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                ctx.lineTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top); ctx.stroke();
+            }
+        };
+        canvas.ontouchend = () => isDrawing = false;
+
         document.getElementById('sig-clear')?.addEventListener('click', () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         });
 
         document.getElementById('sig-insert')?.addEventListener('click', () => {
-            const dataUrl = canvas.toDataURL();
+            const activeTab = document.querySelector('.sig-tab.active')?.dataset.sig;
             const el = Elements.createSignature(
                 DocModel.pageSettings.marginLeft + 50,
                 DocModel.pageSettings.height - DocModel.pageSettings.marginBottom - 120
             );
-            el.dataUrl = dataUrl;
+
+            if (activeTab === 'draw') {
+                el.dataUrl = canvas.toDataURL();
+            } else if (activeTab === 'type') {
+                const typeInput = document.getElementById('sig-type-input');
+                el.text = typeInput?.value || 'Signature';
+                el.signatureType = 'type';
+            } else if (activeTab === 'upload') {
+                const sigContent = document.querySelector('.sig-content');
+                el.dataUrl = sigContent?.dataset.uploadedSrc || '';
+                el.signatureType = 'upload';
+            }
+
             const added = DocModel.addElement(DocModel.activePageIndex, el);
             DocModel.selectedElements = [added.id];
             Canvas.render();
             this.closeAllDialogs();
+            document.getElementById('status-text').textContent = 'Signature inserted';
         });
     },
 
     showPageNumberDialog() {
         const dialog = document.getElementById('pagenum-dialog');
         if (dialog) dialog.classList.add('show');
+
+        // Wire up the Apply button properly
+        document.getElementById('pagenum-apply')?.addEventListener('click', () => {
+            DocModel.pageSettings.pageNumberStyle = document.getElementById('pagenum-style')?.value || 'simple';
+            DocModel.pageSettings.pageNumberFormat = document.getElementById('pagenum-format')?.value || 'decimal';
+            DocModel.pageSettings.pageNumberPosition = document.getElementById('pagenum-position')?.value || 'bottom-center';
+            DocModel.pageSettings.pageNumberStartFrom = parseInt(document.getElementById('pagenum-start')?.value) || 1;
+            DocModel.saveState();
+            Canvas.render();
+            this.closeAllDialogs();
+            document.getElementById('status-text').textContent = 'Page numbers applied';
+        });
     },
 
     showLinkDialog() {
@@ -525,49 +801,73 @@ const Toolbar = {
     },
 
     insertHeaderFooter(type) {
-        const hf = Elements.createHeaderFooter(type);
-        DocModel.pageSettings[type + 'Content'] = hf;
+        // Insert as a textbox element at appropriate position
+        const ps = DocModel.pageSettings;
+        const y = type === 'header' ? 20 : ps.height - 40;
+        const el = Elements.createTextBox(ps.marginLeft, y, ps.width - ps.marginLeft - ps.marginRight, 30);
+        el.content = `<p style="text-align:center;color:#888;font-size:10px;">${type === 'header' ? 'Header text' : 'Footer text'}</p>`;
+        el.fontSize = 10;
+        el.color = '#888888';
+        el.textAlign = 'center';
+        el.backgroundColor = 'transparent';
+        const added = DocModel.addElement(DocModel.activePageIndex, el);
+        DocModel.selectedElements = [added.id];
         Canvas.render();
+        document.getElementById('status-text').textContent = `${type === 'header' ? 'Header' : 'Footer'} inserted`;
     },
 
     closeAllDialogs() {
         document.querySelectorAll('.dialog-overlay').forEach(d => d.classList.remove('show'));
         document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.remove('show'));
+        document.getElementById('file-menu')?.classList.remove('show');
     },
 
     showFindReplace() {
         const panel = document.getElementById('find-replace-panel');
         if (panel) {
             panel.classList.toggle('show');
-            document.getElementById('find-input')?.focus();
+            if (panel.classList.contains('show')) {
+                document.getElementById('find-input')?.focus();
+            }
         }
     },
 
     newDocument() {
         if (confirm('Create a new document? Unsaved changes will be lost.')) {
             DocModel.init();
+            DocModel.selectedElements = [];
             Canvas.render();
+            App.updatePageInfo();
+            document.getElementById('file-menu')?.classList.remove('show');
+            document.getElementById('status-text').textContent = 'New document created';
         }
     },
 
     openFile() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.pdf,.json';
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            if (file.name.endsWith('.pdf')) {
-                PDFHandler.openPDF(file);
-            } else if (file.name.endsWith('.json')) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    DocModel.deserialize(ev.target.result);
-                    Canvas.render();
-                };
-                reader.readAsText(file);
-            }
-        };
+        document.getElementById('file-menu')?.classList.remove('show');
+        const input = document.getElementById('hidden-file-input') || document.createElement('input');
+        if (!input.id) {
+            input.type = 'file';
+            input.accept = '.pdf,.json';
+            input.style.display = 'none';
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (file.name.toLowerCase().endsWith('.pdf')) {
+                    PDFHandler.openPDF(file);
+                } else if (file.name.toLowerCase().endsWith('.json')) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        DocModel.deserialize(ev.target.result);
+                        Canvas.render();
+                        App.updatePageInfo();
+                    };
+                    reader.readAsText(file);
+                }
+                input.value = '';
+            });
+            document.body.appendChild(input);
+        }
         input.click();
     },
 
@@ -580,45 +880,73 @@ const Toolbar = {
         a.download = 'document.json';
         a.click();
         URL.revokeObjectURL(url);
+        document.getElementById('file-menu')?.classList.remove('show');
+        document.getElementById('status-text').textContent = 'Document saved';
     },
 
     updateFromSelection() {
-        if (DocModel.selectedElements.length === 0) {
-            document.getElementById('properties-panel')?.classList.remove('show');
-            return;
-        }
+        if (DocModel.selectedElements.length === 0) return;
 
         const el = DocModel.getElement(DocModel.activePageIndex, DocModel.selectedElements[0]);
         if (!el) return;
 
         // Update toolbar state
-        if (el.fontFamily) document.getElementById('font-family-text') && (document.getElementById('font-family-text').textContent = el.fontFamily);
-        if (el.fontSize) document.getElementById('font-size') && (document.getElementById('font-size').value = el.fontSize);
+        if (el.fontFamily) {
+            const fontText = document.getElementById('font-family-text');
+            if (fontText) fontText.textContent = el.fontFamily;
+        }
+        if (el.fontSize) {
+            const fontSizeEl = document.getElementById('font-size');
+            if (fontSizeEl) fontSizeEl.value = el.fontSize;
+        }
 
         // Toggle button states
         document.getElementById('btn-bold')?.classList.toggle('active', el.fontWeight === 'bold');
         document.getElementById('btn-italic')?.classList.toggle('active', el.fontStyle === 'italic');
         document.getElementById('btn-underline')?.classList.toggle('active', el.textDecoration === 'underline');
+        document.getElementById('btn-strikethrough')?.classList.toggle('active', el.textDecoration === 'line-through');
 
-        // Show/hide context-sensitive panels
-        const imgPanel = document.getElementById('image-corrections');
-        const textFormatting = document.getElementById('text-formatting');
+        // Alignment buttons
+        if (el.textAlign) this.updateAlignButtons(el.textAlign);
+
+        // Update element properties panel values
+        const rotEl = document.getElementById('el-rotation');
+        if (rotEl) {
+            rotEl.value = el.rotation || 0;
+            document.getElementById('el-rotation-val').textContent = (el.rotation || 0) + '°';
+        }
+        const opEl = document.getElementById('el-opacity');
+        if (opEl) {
+            opEl.value = (el.opacity || 1) * 100;
+            document.getElementById('el-opacity-val').textContent = Math.round((el.opacity || 1) * 100) + '%';
+        }
+
+        // Show image-specific controls
         if (el.type === 'image') {
-            imgPanel?.classList.add('show');
-            textFormatting?.classList.remove('show');
-            // Update slider values
             document.getElementById('img-brightness') && (document.getElementById('img-brightness').value = el.brightness);
             document.getElementById('img-contrast') && (document.getElementById('img-contrast').value = el.contrast);
             document.getElementById('img-saturation') && (document.getElementById('img-saturation').value = el.saturation);
             document.getElementById('img-hue') && (document.getElementById('img-hue').value = el.hue);
-        } else {
-            imgPanel?.classList.remove('show');
-            if (el.type === 'textbox') textFormatting?.classList.add('show');
+            document.getElementById('img-blur') && (document.getElementById('img-blur').value = el.blur || 0);
+            document.getElementById('img-cropTop') && (document.getElementById('img-cropTop').value = el.cropTop || 0);
+            document.getElementById('img-cropRight') && (document.getElementById('img-cropRight').value = el.cropRight || 0);
+            document.getElementById('img-cropBottom') && (document.getElementById('img-cropBottom').value = el.cropBottom || 0);
+            document.getElementById('img-cropLeft') && (document.getElementById('img-cropLeft').value = el.cropLeft || 0);
         }
 
-        // Update element properties panel
-        document.getElementById('el-rotation') && (document.getElementById('el-rotation').value = el.rotation || 0);
-        document.getElementById('el-opacity') && (document.getElementById('el-opacity').value = (el.opacity || 1) * 100);
+        // Border controls
+        document.getElementById('el-border-width') && (document.getElementById('el-border-width').value = el.borderWidth || 0);
+        document.getElementById('el-border-color') && (document.getElementById('el-border-color').value = el.borderColor || '#000000');
+        document.getElementById('el-border-radius') && (document.getElementById('el-border-radius').value = el.borderRadius || 0);
+
+        // Shape color controls
+        if (el.type === 'shape') {
+            document.getElementById('shape-fill') && (document.getElementById('shape-fill').value = el.fill || '#4a90d9');
+            document.getElementById('shape-stroke') && (document.getElementById('shape-stroke').value = el.stroke || '#2c5f8a');
+        }
+
+        // Update status
+        document.getElementById('status-text').textContent = `Selected: ${el.type}${el.locked ? ' (locked)' : ''}`;
     }
 };
 
