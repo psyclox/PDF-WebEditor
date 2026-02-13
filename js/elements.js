@@ -3,6 +3,7 @@ const Elements = {
     createTextBox(x, y, width, height, content) {
         return {
             type: 'textbox',
+            id: 'el-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
             x: x !== undefined ? x : 100,
             y: y !== undefined ? y : 100,
             width: width || 300, height: height || 100,

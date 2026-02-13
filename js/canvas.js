@@ -41,93 +41,270 @@ const Canvas = {
 
     // ======== RENDER ========
 
+    // ======== RENDER ENGINE V2 (DOM SYNC) ========
+
     render() {
         if (!this.pagesContainer) return;
-        this.pagesContainer.innerHTML = '';
+
         const ps = DocModel.pageSettings;
+        const pagesToCheck = new Set(DocModel.pages.map((_, i) => i.toString()));
 
+        // 1. SYNC PAGES
         DocModel.pages.forEach((page, pageIdx) => {
-            const pageWrapper = document.createElement('div');
-            pageWrapper.className = 'page-wrapper';
+            let pageWrapper = this.pagesContainer.querySelector(`.page-wrapper[data-page-index="${pageIdx}"]`);
 
-            const pageEl = document.createElement('div');
-            pageEl.className = 'page' + (pageIdx === DocModel.activePageIndex ? ' active' : '');
-            pageEl.dataset.pageIndex = pageIdx;
-            pageEl.style.width = ps.width + 'px';
-            pageEl.style.height = ps.height + 'px';
-            pageEl.style.backgroundColor = page.backgroundColor || ps.backgroundColor || '#fff';
-            pageEl.style.transform = `scale(${this.zoom})`;
-            pageEl.style.transformOrigin = 'top center';
-            pageEl.style.position = 'relative';
-            pageEl.style.overflow = 'hidden';
+            // Creating Page Wrapper if missing
+            if (!pageWrapper) {
+                pageWrapper = document.createElement('div');
+                pageWrapper.className = 'page-wrapper';
+                pageWrapper.dataset.pageIndex = pageIdx;
 
-            // Ruler
-            if (this.showRuler) {
-                const ruler = document.createElement('div');
-                ruler.className = 'ruler-overlay';
-                ruler.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:20px;background:rgba(255,255,255,0.9);border-bottom:1px solid #ccc;z-index:1000;font-size:8px;color:#666;pointer-events:none;';
-                for (let i = 0; i <= ps.width; i += 100) {
-                    const mark = document.createElement('span');
-                    mark.style.cssText = `position:absolute;left:${i}px;bottom:0;border-left:1px solid #999;height:12px;font-size:7px;padding-left:2px;`;
-                    mark.textContent = (i / 96).toFixed(1) + '"';
-                    ruler.appendChild(mark);
-                }
-                pageEl.appendChild(ruler);
-            }
+                const pageEl = document.createElement('div');
+                pageEl.className = 'page';
+                pageEl.dataset.pageIndex = pageIdx;
 
-            // Gridlines / Column Guides
-            if (this.showGridlines || (ps.columns && ps.columns > 1)) {
-                const guides = document.createElement('div');
-                guides.style.cssText = `position:absolute;top:${ps.marginTop}px;left:${ps.marginLeft}px;right:${ps.marginRight}px;bottom:${ps.marginBottom}px;pointer-events:none;z-index:999;`;
-
-                // Border for margins
-                if (this.showGridlines) {
-                    guides.style.border = '1px dashed rgba(0,120,215,0.3)';
+                // Add Ruler
+                if (this.showRuler) {
+                    const ruler = this.createRuler(ps.width);
+                    pageEl.appendChild(ruler);
                 }
 
-                // Columns
-                if (ps.columns && ps.columns > 1) {
-                    const contentWidth = ps.width - ps.marginLeft - ps.marginRight;
-                    const colWidth = (contentWidth - (ps.columns - 1) * 24) / ps.columns; // 24px gap
-
-                    for (let c = 1; c < ps.columns; c++) {
-                        const gapCenter = (colWidth * c) + (24 * (c - 1)) + 12;
-                        const line = document.createElement('div');
-                        line.style.cssText = `position:absolute;left:${gapCenter}px;top:0;bottom:0;width:0;border-left:1px dashed rgba(0,0,0,0.1);`;
-                        guides.appendChild(line);
-                    }
+                // Add Guides
+                if (this.showGridlines || (ps.columns && ps.columns > 1)) {
+                    const guides = this.createGuides(ps);
+                    pageEl.appendChild(guides);
                 }
 
-                pageEl.appendChild(guides);
+                pageWrapper.appendChild(pageEl);
+
+                // Add Label
+                const label = document.createElement('div');
+                label.className = 'page-label';
+                label.textContent = `Page ${pageIdx + 1} of ${DocModel.pages.length}`;
+                pageWrapper.appendChild(label);
+
+                // Append in correct order? For simplicity, append. 
+                // Ideally insertBefore if we supported inserting pages in middle.
+                this.pagesContainer.appendChild(pageWrapper);
             }
 
-            // Render elements sorted by z-index
-            const sorted = [...page.elements].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
-            sorted.forEach(el => {
-                if (el.visible === false) return;
-                const dom = this.renderElement(el, pageIdx);
-                if (dom) pageEl.appendChild(dom);
-            });
+            // Sync Page Style
+            const pageEl = pageWrapper.querySelector('.page');
+            if (pageEl) {
+                // Update Active State
+                if (pageIdx === DocModel.activePageIndex) pageEl.classList.add('active');
+                else pageEl.classList.remove('active');
 
-            // Page number
-            if (ps.pageNumberStyle && ps.pageNumberStyle !== 'none') {
-                const pn = this.renderPageNumber(pageIdx);
-                if (pn) pageEl.appendChild(pn);
+                // Update Dimensions
+                pageEl.style.width = ps.width + 'px';
+                pageEl.style.height = ps.height + 'px';
+                pageEl.style.backgroundColor = page.backgroundColor || ps.backgroundColor || '#fff';
+                pageEl.style.transform = `scale(${this.zoom})`;
+                pageEl.style.transformOrigin = 'top center';
+
+                // Sync Elements
+                this.syncElements(page, pageEl, pageIdx);
+
+                // Sync Page Number
+                this.syncPageNumber(pageWrapper, pageEl, pageIdx, ps);
             }
 
-            pageWrapper.appendChild(pageEl);
+            // Sync Label text
+            const label = pageWrapper.querySelector('.page-label');
+            if (label) label.textContent = `Page ${pageIdx + 1} of ${DocModel.pages.length}`;
+        });
 
-            // Page label
-            const label = document.createElement('div');
-            label.className = 'page-label';
-            label.textContent = `Page ${pageIdx + 1} of ${DocModel.pages.length}`;
-            pageWrapper.appendChild(label);
-
-            this.pagesContainer.appendChild(pageWrapper);
+        // 2. CLEANUP STALE PAGES
+        const allWrappers = Array.from(this.pagesContainer.querySelectorAll('.page-wrapper'));
+        allWrappers.forEach(wrapper => {
+            if (!pagesToCheck.has(wrapper.dataset.pageIndex)) {
+                wrapper.remove();
+            }
         });
 
         this.updateThumbnails();
         if (typeof App !== 'undefined' && App.updatePageInfo) App.updatePageInfo();
+    },
+
+    syncElements(page, pageEl, pageIdx) {
+        const elementsToCheck = new Set(page.elements.map(el => el.id));
+
+        // 1. UPDATE / CREATE ELEMENTS
+        // Sort elements by zIndex to ensure correct stacking order if appending
+        // Note: DOM order matters for z-index if explicit z-index is not sufficient or matches. 
+        // We'll rely on explicit z-index style.
+
+        page.elements.forEach(el => {
+            let wrapper = document.getElementById(`el-wrapper-${el.id}`);
+
+            if (!wrapper) {
+                // Create New
+                wrapper = this.renderElement(el, pageIdx);
+                pageEl.appendChild(wrapper);
+            } else {
+                // Update Existing
+                // Verify it's in the right page (dragging between pages not supported in this view, assuming reparenting elsewhere)
+                if (wrapper.parentElement !== pageEl) {
+                    pageEl.appendChild(wrapper);
+                }
+                this.updateElementDOM(wrapper, el, pageIdx);
+            }
+        });
+
+        // 2. REMOVE STALE ELEMENTS
+        const allElements = Array.from(pageEl.querySelectorAll('.element-wrapper'));
+        allElements.forEach(elWrapper => {
+            const id = elWrapper.dataset.elementId;
+            // Only remove if it belongs to this page's logic loop
+            // And is not found in the current page elements
+            if (!elementsToCheck.has(id)) {
+                elWrapper.remove();
+            }
+        });
+    },
+
+    updateElementDOM(wrapper, el, pageIdx) {
+        // Efficiently update properties that might change
+        const isSelected = DocModel.selectedElements.includes(el.id);
+
+        // Classes
+        wrapper.classList.toggle('selected', isSelected);
+        wrapper.classList.toggle('locked', !!el.locked);
+
+        // Position & Size
+        wrapper.style.left = el.x + 'px';
+        wrapper.style.top = el.y + 'px';
+        wrapper.style.width = el.width + 'px';
+        wrapper.style.height = el.height + 'px';
+        wrapper.style.zIndex = (el.zIndex || 0) + 10;
+        wrapper.style.transform = `rotate(${el.rotation || 0}deg)`;
+        wrapper.style.opacity = el.opacity !== undefined ? el.opacity : 1;
+        wrapper.style.cursor = el.locked ? 'default' : 'move';
+
+        // Content Specific Updates (Only if necessary?)
+        // To avoid innerHTML trashing e.g. on iframes or heavy DOM, we could check content.
+        // For Textboxes, we must be careful not to overwrite if user is currently typing!
+        // but `render()` shouldn't be called while typing in `editMode`.
+        if (this.editingTextbox === el.id) return; // Skip update if editing
+
+        // Simple content refresh (optimization: check data-hash or similar if content is large)
+        // For now, simple diffing based on type
+        if (el.type === 'textbox') {
+            const textbox = wrapper.querySelector('.element-textbox');
+            if (textbox && textbox.innerHTML !== el.content) {
+                textbox.innerHTML = el.content;
+                // Re-apply styles ?
+                this.applyTextboxStyles(textbox, el);
+            } else if (textbox) {
+                // Even if content matches, Styles might have changed
+                this.applyTextboxStyles(textbox, el);
+            }
+            if (textbox) textbox.style.pointerEvents = el.locked ? 'none' : 'auto';
+        }
+        else if (el.type === 'image') {
+            // check src, styles
+            const img = wrapper.querySelector('img');
+            if (img && img.src !== el.src) img.src = el.src;
+            // update filters
+            if (img) img.style.filter = `brightness(${el.brightness}%) contrast(${el.contrast}%) saturate(${el.saturation}%) hue-rotate(${el.hue}deg) blur(${el.blur}px)`;
+        }
+        else if (el.type === 'table') {
+            // Full re-render for complex tables for now, unless we write specific cell syncer
+            // Optimization: compare JSON string of cell data?
+            // Fallback: replace content
+            const oldTable = wrapper.querySelector('table');
+            if (oldTable) wrapper.removeChild(oldTable);
+            wrapper.appendChild(this.renderTable(el));
+        }
+
+        // Handle Re-creation of Resize Handles if selection changed state
+        const hasHandles = wrapper.querySelector('.resize-handle');
+        if (isSelected && !el.locked && !hasHandles) {
+            this.addResizeHandles(wrapper);
+        } else if ((!isSelected || el.locked) && hasHandles) {
+            wrapper.querySelectorAll('.resize-handle').forEach(h => h.remove());
+        }
+    },
+
+    applyTextboxStyles(div, el) {
+        div.style.fontFamily = `'${el.fontFamily || 'Inter'}',sans-serif`;
+        div.style.fontSize = `${el.fontSize || 14}px`;
+        div.style.fontWeight = el.fontWeight || 'normal';
+        div.style.fontStyle = el.fontStyle || 'normal';
+        div.style.textDecoration = el.textDecoration || 'none';
+        div.style.textAlign = el.textAlign || 'left';
+        div.style.color = el.color || '#000';
+        div.style.lineHeight = el.lineHeight || 1.5;
+        div.style.letterSpacing = `${el.letterSpacing || 0}px`;
+        div.style.backgroundColor = el.backgroundColor || 'transparent';
+        div.style.border = `${el.borderWidth || 0}px solid ${el.borderColor || 'transparent'}`;
+        div.style.borderRadius = `${el.borderRadius || 0}px`;
+        div.style.padding = `${el.padding || 8}px`;
+    },
+
+    addResizeHandles(wrapper) {
+        ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].forEach(dir => {
+            const handle = document.createElement('div');
+            handle.className = `resize-handle resize-${dir}`;
+            handle.dataset.handle = dir;
+            wrapper.appendChild(handle);
+        });
+    },
+
+    createRuler(width) {
+        const ruler = document.createElement('div');
+        ruler.className = 'ruler-overlay';
+        ruler.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:20px;background:rgba(255,255,255,0.9);border-bottom:1px solid #ccc;z-index:1000;font-size:8px;color:#666;pointer-events:none;';
+        for (let i = 0; i <= width; i += 100) {
+            const mark = document.createElement('span');
+            mark.style.cssText = `position:absolute;left:${i}px;bottom:0;border-left:1px solid #999;height:12px;font-size:7px;padding-left:2px;`;
+            mark.textContent = (i / 96).toFixed(1) + '"';
+            ruler.appendChild(mark);
+        }
+        return ruler;
+    },
+
+    createGuides(ps) {
+        const guides = document.createElement('div');
+        guides.style.cssText = `position:absolute;top:${ps.marginTop}px;left:${ps.marginLeft}px;right:${ps.marginRight}px;bottom:${ps.marginBottom}px;pointer-events:none;z-index:999;`;
+
+        if (this.showGridlines) {
+            guides.style.border = '1px dashed rgba(0,120,215,0.3)';
+        }
+
+        if (ps.columns && ps.columns > 1) {
+            const contentWidth = ps.width - ps.marginLeft - ps.marginRight;
+            const colWidth = (contentWidth - (ps.columns - 1) * 24) / ps.columns;
+            for (let c = 1; c < ps.columns; c++) {
+                const gapCenter = (colWidth * c) + (24 * (c - 1)) + 12;
+                const line = document.createElement('div');
+                line.style.cssText = `position:absolute;left:${gapCenter}px;top:0;bottom:0;width:0;border-left:1px dashed rgba(0,0,0,0.1);`;
+                guides.appendChild(line);
+            }
+        }
+        return guides;
+    },
+
+    syncPageNumber(wrapper, pageEl, pageIdx, ps) {
+        if (!ps.pageNumberStyle || ps.pageNumberStyle === 'none') {
+            const existing = pageEl.querySelector('.page-number-display');
+            if (existing) existing.remove();
+            return;
+        }
+
+        let pn = pageEl.querySelector('.page-number-display');
+        if (!pn) {
+            pn = this.renderPageNumber(pageIdx);
+            pn.className = 'page-number-display'; // Tag for easy finding
+            pageEl.appendChild(pn);
+        } else {
+            // Update text/pos if needed - technically renderPageNumber returns a new DIV
+            // Simplest is replace
+            pn.remove();
+            const newPn = this.renderPageNumber(pageIdx);
+            newPn.className = 'page-number-display';
+            pageEl.appendChild(newPn);
+        }
     },
 
     // ======== ELEMENT RENDERING ========
@@ -135,6 +312,7 @@ const Canvas = {
     renderElement(el, pageIdx) {
         const wrapper = document.createElement('div');
         wrapper.className = 'element-wrapper';
+        wrapper.id = `el-wrapper-${el.id}`; // Add ID for direct access
         wrapper.dataset.elementId = el.id;
         wrapper.dataset.pageIndex = pageIdx;
         wrapper.dataset.type = el.type;
@@ -739,6 +917,7 @@ const Canvas = {
         // ---- DRAGGING ----
         if (this.isDragging) {
             // Move ALL selected elements together
+            // Use Direct DOM manipulation for performance
             for (const id of DocModel.selectedElements) {
                 const start = this._multiDragStart?.[id];
                 if (!start) continue;
@@ -748,9 +927,18 @@ const Canvas = {
                     nx = Math.round(nx / this.gridSize) * this.gridSize;
                     ny = Math.round(ny / this.gridSize) * this.gridSize;
                 }
+
+                // Update Model (but don't render)
                 DocModel.updateElement(this.activePageIndex, id, { x: nx, y: ny });
+
+                // Update DOM directly
+                const domEl = document.getElementById(`el-wrapper-${id}`);
+                if (domEl) {
+                    domEl.style.left = nx + 'px';
+                    domEl.style.top = ny + 'px';
+                }
             }
-            this.render();
+            // NO this.render() call here!
         }
 
         // ---- RESIZING ----
@@ -764,8 +952,18 @@ const Canvas = {
             if (dir.includes('n')) { y += dy; h -= dy; }
             if (w < 20) w = 20;
             if (h < 20) h = 20;
+
+            // Update Model
             DocModel.updateElement(this.activePageIndex, this.activeElement, { x, y, width: w, height: h });
-            this.render();
+
+            // Update DOM directly
+            const domEl = document.getElementById(`el-wrapper-${this.activeElement}`);
+            if (domEl) {
+                domEl.style.left = x + 'px';
+                domEl.style.top = y + 'px';
+                domEl.style.width = w + 'px';
+                domEl.style.height = h + 'px';
+            }
         }
     },
 

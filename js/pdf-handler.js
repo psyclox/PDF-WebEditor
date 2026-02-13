@@ -95,60 +95,114 @@ const PDFHandler = {
             const textContent = await pdfPage.getTextContent();
 
             if (!textContent || textContent.items.length === 0) {
-                console.warn('No text content found on page (Scanned PDF?)');
-                const statusBar = document.getElementById('status-text');
-                if (statusBar) statusBar.textContent = 'No text found (Scanned PDF). Use OCR tool.';
-                // Only alert once on first page to avoid spam
+                // Only alert once on first page
                 if (docPage === DocModel.pages[0]) {
-                    alert('No text found in this PDF. It appears to be a scanned image.\n\nPlease use the "Run OCR" tool to edit text.');
+                    console.warn('No text found (Scanned PDF?)');
+                    const statusBar = document.getElementById('status-text');
+                    if (statusBar) statusBar.textContent = 'No text found (Scanned PDF). Use OCR tool.';
                 }
                 return;
             }
 
-            const scale = 96 / 72;
-            const pageHeight = viewport.height;
+            const VISUAL_SCALE = 96 / 72;
+            const viewportHeight = viewport.height; // Already at scale=1 usually? 
+            // wait, in openPDF we did: const origViewport = pdfPage.getViewport({ scale: 1 });
+            // and passed that as viewport. So viewport.height is PDF points.
 
-            // Group items by line (approximately same Y)
-            const lines = {};
-            textContent.items.forEach(item => {
-                // Round Y to group items on same line
-                const y = Math.round(item.transform[5]);
-                if (!lines[y]) lines[y] = [];
-                lines[y].push(item);
-            });
+            // Normalize all items
+            let items = textContent.items.map(item => {
+                const tx = item.transform;
+                // PDF space (72dpi, bottom-left origin)
+                const pdfFontSize = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]);
+                const pdfX = tx[4];
+                const pdfY = tx[5];
 
-            // 1. Collect all lines first
-            const pool = [];
-            const sortedYKeys = Object.keys(lines).sort((a, b) => parseFloat(b) - parseFloat(a));
+                // HTML space (96dpi, top-left origin)
+                const fontSizePx = Math.round(pdfFontSize * VISUAL_SCALE);
+                const x = pdfX * VISUAL_SCALE;
+                // Adjust Y to top-left. PDF Y is baseline. We need top.
+                // Heuristic: top is roughly Y - fontSize (since Y is bottom-up 0 at bottom)
+                // Actually: HTML_Y = (PageHeight - PDF_Y) * Scale - FontSizePx (approx)
+                // Better: HTML_Y = (PageHeight - PDF_Y) * Scale - (fontSizePx * 0.8) for baseline adjustment
+                const y = (viewportHeight - pdfY) * VISUAL_SCALE - (fontSizePx * 0.8);
 
-            sortedYKeys.forEach(yKey => {
-                const items = lines[yKey].sort((a, b) => a.transform[4] - b.transform[4]);
+                return {
+                    text: item.str,
+                    x: x,
+                    y: y,
+                    width: item.width * VISUAL_SCALE,
+                    height: fontSizePx, // Approximation of line height
+                    fontSize: fontSizePx,
+                    fontName: item.fontName,
+                    hasEOL: item.hasEOL
+                };
+            }).filter(i => i.text.trim().length > 0);
 
-                // Construct text line
-                let textArr = [];
-                let prevEnd = -1;
-                items.forEach(item => {
-                    if (prevEnd !== -1 && (item.transform[4] - prevEnd > 4)) textArr.push(' ');
-                    textArr.push(item.str);
-                    prevEnd = item.transform[4] + item.width;
+            // 1. Group into physical lines (based on Y overlap)
+            // Sort by Y first
+            items.sort((a, b) => a.y - b.y);
+
+            const lines = [];
+            if (items.length > 0) {
+                let currentLine = [items[0]];
+                let currentLineY = items[0].y;
+                let currentLineH = items[0].height;
+
+                for (let i = 1; i < items.length; i++) {
+                    const item = items[i];
+                    // If vertical overlap is significant, it's the same line
+                    // Tolerance: half the font size
+                    if (Math.abs(item.y - currentLineY) < (currentLineH * 0.5)) {
+                        currentLine.push(item);
+                    } else {
+                        lines.push(currentLine);
+                        currentLine = [item];
+                        currentLineY = item.y;
+                        currentLineH = item.height;
+                    }
+                }
+                lines.push(currentLine);
+            }
+
+            // 2. Consolidate within lines (sort X, merge adjacent text)
+            const solidLines = lines.map(lineItems => {
+                lineItems.sort((a, b) => a.x - b.x);
+
+                let text = '';
+                let lastEnd = -1000;
+                let startX = lineItems[0].x;
+                let startY = lineItems[0].y; // Use first item Y as line Y
+                let maxHeight = 0;
+                let width = 0;
+
+                lineItems.forEach(item => {
+                    // Check gap
+                    if (lastEnd > 0) {
+                        const gap = item.x - lastEnd;
+                        // If gap is large, maybe we should treat as separate checks?
+                        // For now, simple merging:
+                        if (gap > 5) text += ' '; // Add space for small visual gaps
+                        if (gap > 100) text += '     '; // Tab simulation?
+                    }
+                    text += item.text;
+                    lastEnd = item.x + item.width;
+                    maxHeight = Math.max(maxHeight, item.height);
                 });
-                const text = textArr.join('').trim();
-                if (!text) return;
 
-                const first = items[0];
-                const last = items[items.length - 1];
-                const fontSizePt = (first.height || 12);
-                const fontSizePx = Math.max(10, Math.floor(fontSizePt * scale));
-                const x = Math.round(first.transform[4] * scale);
-                // HTML Top Y
-                const y = Math.round((pageHeight - first.transform[5] - fontSizePt * 0.80) * scale);
-                const width = Math.round(((last.transform[4] + last.width) - first.transform[4]) * scale) + 16;
-                const height = fontSizePx; // Initial line height estimate
+                width = lastEnd - startX;
 
-                pool.push({ text, x, y, width, fontSizePx, height });
+                return {
+                    text: text,
+                    x: startX,
+                    y: startY,
+                    width: width,
+                    height: maxHeight,
+                    fontSizePx: lineItems[0].fontSize // Use first item font
+                };
             });
 
             // 2. Block Layout Engine (Professional Grouping)
+            const pool = solidLines; // Define pool as alias for solidLines
             const blocks = [];
             const processed = new Set();
 
@@ -184,8 +238,9 @@ const PDFHandler = {
 
                     const verticalGap = candidate.y - current.y;
 
-                    // Gap must be positive and reasonable (< 2.5 font size)
-                    if (verticalGap > 0 && verticalGap < (block.fontSizePx * 2.5)) {
+                    // Gap must be positive and reasonable
+                    // FIX: Ensure specific minimum gap to avoid crushing
+                    if (verticalGap >= (block.fontSizePx * 0.1) && verticalGap < (block.fontSizePx * 2.5)) {
                         block.lines.push(candidate.text);
                         block.width = Math.max(block.width, candidate.width);
                         block.gaps.push(verticalGap);
@@ -203,6 +258,10 @@ const PDFHandler = {
                 } else {
                     block.lineHeightRatio = 1.2;
                 }
+
+                // Safe fallbacks for Line Height
+                if (block.lineHeightRatio < 1.0) block.lineHeightRatio = 1.1; // Force visual separation
+
                 blocks.push(block);
             }
 
@@ -210,8 +269,8 @@ const PDFHandler = {
             blocks.forEach(b => {
                 const combinedText = b.lines.join('<br>');
 
-                // Dynamic geometric line height (clamped 1.0 - 2.0)
-                let lh = Math.max(1.0, Math.min(b.lineHeightRatio, 2.0));
+                // Dynamic geometric line height (clamped 1.1 - 2.0)
+                let lh = Math.max(1.1, Math.min(b.lineHeightRatio, 2.0));
                 lh = Math.round(lh * 100) / 100;
 
                 const padding = 2;
@@ -233,18 +292,14 @@ const PDFHandler = {
                 el.borderColor = 'transparent';
                 el.zIndex = 20;
 
-                docPage.elements.push(el);
+                // Use DocModel to add element (handles ID if missing, though we added it now)
+                DocModel.addElement(DocModel.pages.indexOf(docPage), el);
             });
 
-            console.log(`Imported ${Object.keys(lines).length} lines of text.`);
-            const statusBar = document.getElementById('status-text');
-            if (statusBar && Object.keys(lines).length > 0) {
-                statusBar.textContent = `Smart Import: ${Object.keys(lines).length} lines editable.`;
-            }
+            console.log(`Smart Import: Created ${blocks.length} blocks from ${items.length} text fragments.`);
 
         } catch (e) {
-            console.warn('Text layer processing failed:', e);
-            alert('Smart Import Error: ' + e.message);
+            console.warn('Text processing error:', e);
         }
     }
 };
