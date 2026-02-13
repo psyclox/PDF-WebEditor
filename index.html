@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProEditor — Professional Document & PDF Editor</title>
+    <meta name="description" content="A powerful web-based document and PDF editor with professional tools for text, images, tables, OCR, and more.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-mode">
+
+<!-- ===== TITLE BAR ===== -->
+<div class="title-bar">
+    <div class="title-bar-left">
+        <span class="app-icon">📄</span>
+        <button id="btn-undo" class="title-btn" title="Undo (Ctrl+Z)">↶</button>
+        <button id="btn-redo" class="title-btn" title="Redo (Ctrl+Y)">↷</button>
+    </div>
+    <div class="title-bar-center">ProEditor — Document Editor</div>
+    <div class="title-bar-right">
+        <button id="btn-dark-mode" class="title-btn active" title="Dark Mode">🌙</button>
+    </div>
+</div>
+
+<!-- ===== RIBBON TABS ===== -->
+<div class="ribbon-tabs">
+    <button class="ribbon-tab" data-tab="file">File</button>
+    <button class="ribbon-tab active" data-tab="home">Home</button>
+    <button class="ribbon-tab" data-tab="insert">Insert</button>
+    <button class="ribbon-tab" data-tab="design">Design</button>
+    <button class="ribbon-tab" data-tab="layout">Layout</button>
+    <button class="ribbon-tab" data-tab="view">View</button>
+</div>
+
+<!-- ===== FILE MENU ===== -->
+<div id="file-menu" class="file-menu">
+    <div class="file-menu-inner">
+        <button id="btn-new" class="file-item">📄 New</button>
+        <button id="btn-open" class="file-item">📂 Open PDF / Project</button>
+        <button id="btn-save" class="file-item">💾 Save Project</button>
+        <div class="file-separator"></div>
+        <div class="file-section-title">Export As</div>
+        <button id="btn-export-pdf" class="file-item">📕 Export as PDF</button>
+        <button id="btn-export-png" class="file-item">🖼️ Export as PNG</button>
+        <button id="btn-export-docx" class="file-item">📘 Export as DOCX</button>
+        <div class="file-separator"></div>
+        <button id="btn-ocr" class="file-item">🔍 Run OCR on Page</button>
+        <button id="btn-find" class="file-item">🔎 Find & Replace</button>
+    </div>
+</div>
+
+<!-- ===== RIBBON PANELS ===== -->
+<div class="ribbon-container">
+
+<!-- HOME PANEL -->
+<div id="panel-home" class="ribbon-panel active">
+    <div class="ribbon-group">
+        <div class="group-label">Clipboard</div>
+        <div class="group-content clipboard-group">
+            <button class="ribbon-btn" onclick="Canvas.pasteClipboard()" title="Paste"><span class="rbtn-icon">📋</span><span class="rbtn-label">Paste</span></button>
+            <div class="mini-btns">
+                <button class="ribbon-btn-sm" onclick="Canvas.copySelected()" title="Copy">📄</button>
+                <button class="ribbon-btn-sm" onclick="Canvas.copySelected();DocModel.selectedElements.forEach(id=>DocModel.removeElement(DocModel.activePageIndex,id));DocModel.selectedElements=[];Canvas.render()" title="Cut">✂️</button>
+            </div>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Font</div>
+        <div class="group-content font-group">
+            <div class="font-row">
+                <div id="font-family" class="font-select"><span id="font-family-text">Inter</span><span class="caret">▾</span></div>
+                <select id="font-size" class="size-select"><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="14" selected>14</option><option value="16">16</option><option value="18">18</option><option value="20">20</option><option value="22">22</option><option value="24">24</option><option value="28">28</option><option value="32">32</option><option value="36">36</option><option value="48">48</option><option value="72">72</option></select>
+            </div>
+            <div class="font-row">
+                <button id="btn-bold" class="fmt-btn" title="Bold (Ctrl+B)"><b>B</b></button>
+                <button id="btn-italic" class="fmt-btn" title="Italic (Ctrl+I)"><i>I</i></button>
+                <button id="btn-underline" class="fmt-btn" title="Underline (Ctrl+U)"><u>U</u></button>
+                <button id="btn-strikethrough" class="fmt-btn" title="Strikethrough"><s>ab</s></button>
+                <button id="btn-superscript" class="fmt-btn" title="Superscript">x²</button>
+                <button id="btn-subscript" class="fmt-btn" title="Subscript">x₂</button>
+                <div class="color-wrap"><label title="Text Color">A</label><input type="color" id="text-color" value="#000000"></div>
+                <div class="color-wrap highlight"><label title="Highlight">🖍</label><input type="color" id="highlight-color" value="#ffff00"></div>
+            </div>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Paragraph</div>
+        <div class="group-content para-group">
+            <div class="para-row">
+                <button id="btn-align-left" class="fmt-btn active" title="Align Left">≡←</button>
+                <button id="btn-align-center" class="fmt-btn" title="Align Center">≡↔</button>
+                <button id="btn-align-right" class="fmt-btn" title="Align Right">≡→</button>
+                <button id="btn-align-justify" class="fmt-btn" title="Justify">≡≡</button>
+            </div>
+            <div class="para-row">
+                <label class="mini-label">Line</label>
+                <select id="line-spacing" class="mini-select"><option value="1">1.0</option><option value="1.15">1.15</option><option value="1.5" selected>1.5</option><option value="2">2.0</option><option value="2.5">2.5</option><option value="3">3.0</option></select>
+                <label class="mini-label">Letter</label>
+                <input type="number" id="letter-spacing" class="mini-input" value="0" min="-5" max="20" step="0.5" title="Letter Spacing">
+                <label class="mini-label">Word</label>
+                <input type="number" id="word-spacing" class="mini-input" value="0" min="-5" max="30" step="1" title="Word Spacing">
+            </div>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Styles</div>
+        <div class="group-content styles-group">
+            <button class="style-preset" data-style="normal">Normal</button>
+            <button class="style-preset" data-style="no-spacing">No Spacing</button>
+            <button class="style-preset heading" data-style="heading1">Heading</button>
+            <button class="style-preset" data-style="heading2">Heading 2</button>
+            <button class="style-preset" data-style="title">Title</button>
+            <button class="style-preset" data-style="subtitle">Subtitle</button>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Editing</div>
+        <div class="group-content">
+            <button class="ribbon-btn" id="btn-find" title="Find & Replace"><span class="rbtn-icon">🔍</span><span class="rbtn-label">Find</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- INSERT PANEL -->
+<div id="panel-insert" class="ribbon-panel">
+    <div class="ribbon-group">
+        <div class="group-label">Pages</div>
+        <div class="group-content">
+            <button id="btn-add-page" class="ribbon-btn" title="Add Page"><span class="rbtn-icon">📄</span><span class="rbtn-label">Add Page</span></button>
+            <button id="btn-insert-pagebreak" class="ribbon-btn" title="Page Break"><span class="rbtn-icon">📃</span><span class="rbtn-label">Page Break</span></button>
+            <button id="btn-delete-page" class="ribbon-btn" title="Delete Page"><span class="rbtn-icon">🗑️</span><span class="rbtn-label">Delete Page</span></button>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Elements</div>
+        <div class="group-content">
+            <button id="btn-insert-textbox" class="ribbon-btn" title="Text Box"><span class="rbtn-icon">📝</span><span class="rbtn-label">Text Box</span></button>
+            <button id="btn-insert-image" class="ribbon-btn" title="Image"><span class="rbtn-icon">🖼️</span><span class="rbtn-label">Picture</span></button>
+            <div class="dropdown-wrapper">
+                <button id="btn-insert-shape" class="ribbon-btn" title="Shapes"><span class="rbtn-icon">⬡</span><span class="rbtn-label">Shapes</span></button>
+                <div id="shape-menu" class="dropdown-menu shape-dropdown">
+                    <div class="shape-grid">
+                        <button class="shape-btn" onclick="Toolbar.insertShape('rectangle')" title="Rectangle">▭</button>
+                        <button class="shape-btn" onclick="Toolbar.insertShape('circle')" title="Circle">◯</button>
+                        <button class="shape-btn" onclick="Toolbar.insertShape('triangle')" title="Triangle">△</button>
+                        <button class="shape-btn" onclick="Toolbar.insertShape('line')" title="Line">—</button>
+                        <button class="shape-btn" onclick="Toolbar.insertShape('arrow')" title="Arrow">→</button>
+                        <button class="shape-btn" onclick="Toolbar.insertShape('star')" title="Star">★</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Tables</div>
+        <div class="group-content">
+            <button id="btn-insert-table" class="ribbon-btn" title="Table"><span class="rbtn-icon">📊</span><span class="rbtn-label">Table</span></button>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Annotations</div>
+        <div class="group-content">
+            <button id="btn-insert-watermark" class="ribbon-btn" title="Watermark"><span class="rbtn-icon">💧</span><span class="rbtn-label">Watermark</span></button>
+            <button id="btn-insert-signature" class="ribbon-btn" title="Signature"><span class="rbtn-icon">✍️</span><span class="rbtn-label">Signature</span></button>
+            <button id="btn-insert-comment" class="ribbon-btn" title="Comment"><span class="rbtn-icon">💬</span><span class="rbtn-label">Comment</span></button>
+            <button id="btn-insert-link" class="ribbon-btn" title="Link"><span class="rbtn-icon">🔗</span><span class="rbtn-label">Link</span></button>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Header & Footer</div>
+        <div class="group-content">
+            <button id="btn-insert-header" class="ribbon-btn" title="Header"><span class="rbtn-icon">🔝</span><span class="rbtn-label">Header</span></button>
+            <button id="btn-insert-footer" class="ribbon-btn" title="Footer"><span class="rbtn-icon">🔚</span><span class="rbtn-label">Footer</span></button>
+            <button id="btn-insert-pagenum" class="ribbon-btn" title="Page Number"><span class="rbtn-icon">#</span><span class="rbtn-label">Page No.</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- DESIGN PANEL -->
+<div id="panel-design" class="ribbon-panel">
+    <div class="ribbon-group">
+        <div class="group-label">Element Properties</div>
+        <div class="group-content props-group">
+            <div class="prop-row"><label>Rotation</label><input type="range" id="el-rotation" min="0" max="360" value="0"><span class="prop-val" id="el-rotation-val">0°</span></div>
+            <div class="prop-row"><label>Opacity</label><input type="range" id="el-opacity" min="0" max="100" value="100"><span class="prop-val" id="el-opacity-val">100%</span></div>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Border</div>
+        <div class="group-content props-group">
+            <div class="prop-row"><label>Width</label><input type="number" id="el-border-width" class="mini-input" min="0" max="20" value="0"></div>
+            <div class="prop-row"><label>Color</label><input type="color" id="el-border-color" value="#000000"></div>
+            <div class="prop-row"><label>Radius</label><input type="number" id="el-border-radius" class="mini-input" min="0" max="100" value="0"></div>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Shape Fill</div>
+        <div class="group-content">
+            <div class="prop-row"><label>Fill</label><input type="color" id="shape-fill" value="#4a90d9"></div>
+            <div class="prop-row"><label>Stroke</label><input type="color" id="shape-stroke" value="#2c5f8a"></div>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Image Corrections</div>
+        <div id="image-corrections" class="group-content props-group">
+            <div class="prop-row"><label>Brightness</label><input type="range" id="img-brightness" min="0" max="200" value="100"></div>
+            <div class="prop-row"><label>Contrast</label><input type="range" id="img-contrast" min="0" max="200" value="100"></div>
+            <div class="prop-row"><label>Saturation</label><input type="range" id="img-saturation" min="0" max="200" value="100"></div>
+            <div class="prop-row"><label>Hue</label><input type="range" id="img-hue" min="0" max="360" value="0"></div>
+            <div class="prop-row"><label>Blur</label><input type="range" id="img-blur" min="0" max="20" value="0"></div>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Crop</div>
+        <div class="group-content props-group">
+            <div class="prop-row"><label>Top</label><input type="range" id="img-cropTop" min="0" max="50" value="0"></div>
+            <div class="prop-row"><label>Right</label><input type="range" id="img-cropRight" min="0" max="50" value="0"></div>
+            <div class="prop-row"><label>Bottom</label><input type="range" id="img-cropBottom" min="0" max="50" value="0"></div>
+            <div class="prop-row"><label>Left</label><input type="range" id="img-cropLeft" min="0" max="50" value="0"></div>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Arrange</div>
+        <div class="group-content">
+            <button id="btn-bring-front" class="ribbon-btn-sm" title="Bring to Front">⬆️ Front</button>
+            <button id="btn-send-back" class="ribbon-btn-sm" title="Send to Back">⬇️ Back</button>
+            <button id="btn-lock" class="ribbon-btn-sm" title="Lock/Unlock">🔒 Lock</button>
+        </div>
+    </div>
+</div>
+
+<!-- LAYOUT PANEL -->
+<div id="panel-layout" class="ribbon-panel">
+    <div class="ribbon-group">
+        <div class="group-label">Margins</div>
+        <div class="group-content">
+            <button class="margin-preset" data-preset="normal">📐 Normal</button>
+            <button class="margin-preset" data-preset="narrow">📐 Narrow</button>
+            <button class="margin-preset" data-preset="moderate">📐 Moderate</button>
+            <button class="margin-preset" data-preset="wide">📐 Wide</button>
+            <button class="margin-preset" data-preset="mirrored">📐 Mirrored</button>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Custom Margins (px)</div>
+        <div class="group-content props-group">
+            <div class="prop-row"><label>Top</label><input type="number" id="marginTop" class="mini-input" value="96"></div>
+            <div class="prop-row"><label>Bottom</label><input type="number" id="marginBottom" class="mini-input" value="96"></div>
+            <div class="prop-row"><label>Left</label><input type="number" id="marginLeft" class="mini-input" value="96"></div>
+            <div class="prop-row"><label>Right</label><input type="number" id="marginRight" class="mini-input" value="96"></div>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Orientation</div>
+        <div class="group-content">
+            <button id="btn-portrait" class="ribbon-btn"><span class="rbtn-icon">📃</span><span class="rbtn-label">Portrait</span></button>
+            <button id="btn-landscape" class="ribbon-btn"><span class="rbtn-icon">📃</span><span class="rbtn-label">Landscape</span></button>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Size</div>
+        <div class="group-content">
+            <select id="page-size" class="tool-select">
+                <option value="letter">Letter (8.5×11)</option>
+                <option value="a4">A4 (210×297mm)</option>
+                <option value="a3">A3</option>
+                <option value="legal">Legal</option>
+                <option value="a5">A5</option>
+                <option value="b5">B5</option>
+                <option value="executive">Executive</option>
+                <option value="tabloid">Tabloid</option>
+            </select>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Columns</div>
+        <div class="group-content">
+            <button class="column-option ribbon-btn-sm" data-columns="1">One</button>
+            <button class="column-option ribbon-btn-sm" data-columns="2">Two</button>
+            <button class="column-option ribbon-btn-sm" data-columns="3">Three</button>
+        </div>
+    </div>
+</div>
+
+<!-- VIEW PANEL -->
+<div id="panel-view" class="ribbon-panel">
+    <div class="ribbon-group">
+        <div class="group-label">Views</div>
+        <div class="group-content">
+            <button class="view-mode-btn ribbon-btn" data-mode="read"><span class="rbtn-icon">📖</span><span class="rbtn-label">Read Mode</span></button>
+            <button class="view-mode-btn ribbon-btn active" data-mode="print-layout"><span class="rbtn-icon">🖨️</span><span class="rbtn-label">Print Layout</span></button>
+            <button class="view-mode-btn ribbon-btn" data-mode="web-layout"><span class="rbtn-icon">🌐</span><span class="rbtn-label">Web Layout</span></button>
+            <button class="view-mode-btn ribbon-btn" data-mode="outline"><span class="rbtn-icon">📋</span><span class="rbtn-label">Outline</span></button>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Immersive</div>
+        <div class="group-content">
+            <button class="view-mode-btn ribbon-btn" data-mode="focus"><span class="rbtn-icon">🎯</span><span class="rbtn-label">Focus</span></button>
+            <button class="view-mode-btn ribbon-btn" data-mode="immersive"><span class="rbtn-icon">📺</span><span class="rbtn-label">Immersive Reader</span></button>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Zoom</div>
+        <div class="group-content">
+            <button id="btn-zoom-in" class="ribbon-btn-sm">➕ Zoom In</button>
+            <button id="btn-zoom-out" class="ribbon-btn-sm">➖ Zoom Out</button>
+            <button id="btn-zoom-fit" class="ribbon-btn-sm">🔲 100%</button>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Show</div>
+        <div class="group-content">
+            <button id="btn-ruler" class="ribbon-btn-sm">📏 Ruler</button>
+            <button id="btn-gridlines" class="ribbon-btn-sm">⊞ Gridlines</button>
+            <button id="btn-nav-pane" class="ribbon-btn-sm">📑 Navigation</button>
+        </div>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-group">
+        <div class="group-label">Page Movement</div>
+        <div class="group-content">
+            <button class="ribbon-btn-sm" onclick="ViewManager.setPageMovement('vertical')">↕ Vertical</button>
+            <button class="ribbon-btn-sm" onclick="ViewManager.setPageMovement('side')">↔ Side by Side</button>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- FONT DROPDOWN -->
+<div id="font-dropdown" class="font-dropdown">
+    <input type="text" id="font-search" class="font-search" placeholder="Search fonts...">
+    <div id="font-list" class="font-list"></div>
+</div>
+
+<!-- ===== MAIN AREA ===== -->
+<div class="main-area">
+    <!-- Navigation Panel -->
+    <div id="nav-panel" class="nav-panel">
+        <div class="nav-header">Pages</div>
+        <div id="nav-thumbnails" class="nav-thumbnails"></div>
+        <div id="outline-content" class="outline-content"></div>
+    </div>
+
+    <!-- Document Area -->
+    <div id="document-area" class="document-area print-layout">
+        <div id="pages-container" class="pages-container vertical-scroll"></div>
+    </div>
+</div>
+
+<!-- ===== FIND & REPLACE ===== -->
+<div id="find-replace-panel" class="find-replace-panel">
+    <div class="fr-header"><span>Find & Replace</span><button onclick="this.parentElement.parentElement.classList.remove('show')">✕</button></div>
+    <div class="fr-row"><label>Find:</label><input type="text" id="find-input"><button id="find-btn">Find</button></div>
+    <div class="fr-row"><label>Replace:</label><input type="text" id="replace-input"><button id="replace-btn">Replace</button><button id="replace-all-btn">All</button></div>
+</div>
+
+<!-- ===== DIALOGS ===== -->
+
+<!-- Table Dialog -->
+<div id="table-dialog" class="dialog-overlay">
+    <div class="dialog">
+        <div class="dialog-header"><h3>Insert Table</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button></div>
+        <div class="dialog-body">
+            <div id="table-grid-selector" class="table-grid"></div>
+            <div id="table-size-label" class="table-size-label">Select size</div>
+        </div>
+    </div>
+</div>
+
+<!-- Watermark Dialog -->
+<div id="watermark-dialog" class="dialog-overlay">
+    <div class="dialog">
+        <div class="dialog-header"><h3>Insert Watermark</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button></div>
+        <div class="dialog-body">
+            <div class="form-group"><label>Text</label><input type="text" id="wm-text" value="CONFIDENTIAL"></div>
+            <div class="form-group"><label>Font Size</label><input type="number" id="wm-size" value="72"></div>
+            <div class="form-group"><label>Color</label><input type="color" id="wm-color" value="#cccccc"></div>
+            <div class="form-group"><label>Opacity</label><input type="range" id="wm-opacity" min="0" max="100" value="20"></div>
+            <div class="form-group"><label>Rotation</label><input type="range" id="wm-rotation" min="-90" max="90" value="-45"></div>
+            <button class="dialog-btn primary" onclick="Toolbar.insertWatermark(document.getElementById('wm-text').value,{fontSize:parseInt(document.getElementById('wm-size').value),color:document.getElementById('wm-color').value,opacity:document.getElementById('wm-opacity').value/100,rotation:parseInt(document.getElementById('wm-rotation').value)})">Insert</button>
+        </div>
+    </div>
+</div>
+
+<!-- Signature Dialog -->
+<div id="signature-dialog" class="dialog-overlay">
+    <div class="dialog dialog-wide">
+        <div class="dialog-header"><h3>Add Signature</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button></div>
+        <div class="dialog-body">
+            <div class="sig-tabs">
+                <button class="sig-tab active" data-sig="draw">Draw</button>
+                <button class="sig-tab" data-sig="type">Type</button>
+                <button class="sig-tab" data-sig="upload">Upload</button>
+            </div>
+            <div class="sig-content">
+                <canvas id="sig-canvas" class="sig-canvas"></canvas>
+            </div>
+            <div class="sig-actions">
+                <button id="sig-clear" class="dialog-btn">Clear</button>
+                <button id="sig-insert" class="dialog-btn primary">Insert Signature</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Page Number Dialog -->
+<div id="pagenum-dialog" class="dialog-overlay">
+    <div class="dialog">
+        <div class="dialog-header"><h3>Page Numbers</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button></div>
+        <div class="dialog-body">
+            <div class="form-group"><label>Style</label><select id="pagenum-style"><option value="simple">Simple</option><option value="decorated">— 1 —</option><option value="page-of">Page 1 of N</option></select></div>
+            <div class="form-group"><label>Format</label><select id="pagenum-format"><option value="decimal">1, 2, 3</option><option value="roman">i, ii, iii</option><option value="roman-upper">I, II, III</option><option value="alpha">a, b, c</option><option value="alpha-upper">A, B, C</option></select></div>
+            <div class="form-group"><label>Position</label><select id="pagenum-position"><option value="bottom-center">Bottom Center</option><option value="bottom-left">Bottom Left</option><option value="bottom-right">Bottom Right</option><option value="top-center">Top Center</option><option value="top-left">Top Left</option><option value="top-right">Top Right</option></select></div>
+            <div class="form-group"><label>Start From</label><input type="number" id="pagenum-start" value="1" min="1"></div>
+            <button id="pagenum-apply" class="dialog-btn primary" onclick="DocModel.pageSettings.pageNumberStyle='simple';Canvas.render();Toolbar.closeAllDialogs()">Apply</button>
+        </div>
+    </div>
+</div>
+
+<!-- Link Dialog -->
+<div id="link-dialog" class="dialog-overlay">
+    <div class="dialog">
+        <div class="dialog-header"><h3>Insert Link</h3><button class="dialog-close" onclick="Toolbar.closeAllDialogs()">✕</button></div>
+        <div class="dialog-body">
+            <div class="form-group"><label>Text</label><input type="text" id="link-text" value="Click here"></div>
+            <div class="form-group"><label>URL</label><input type="url" id="link-url" placeholder="https://"></div>
+            <button class="dialog-btn primary" onclick="const el=Elements.createLink(150,150,document.getElementById('link-text').value,document.getElementById('link-url').value);DocModel.addElement(DocModel.activePageIndex,el);Canvas.render();Toolbar.closeAllDialogs()">Insert</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== OCR PROGRESS ===== -->
+<div id="ocr-progress" class="ocr-progress"><div id="ocr-progress-fill" class="ocr-fill"></div></div>
+
+<!-- ===== STATUS BAR ===== -->
+<div class="status-bar">
+    <div class="status-left"><span id="status-text">Ready</span></div>
+    <div class="status-center"><span id="page-info"></span></div>
+    <div class="status-right">
+        <button id="btn-zoom-out" class="status-btn">−</button>
+        <span id="zoom-level">100%</span>
+        <button id="btn-zoom-in" class="status-btn">+</button>
+    </div>
+</div>
+
+<!-- ===== CDN SCRIPTS ===== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<!-- App Scripts -->
+<script src="js/fonts.js"></script>
+<script src="js/document.js"></script>
+<script src="js/elements.js"></script>
+<script src="js/canvas.js"></script>
+<script src="js/toolbar.js"></script>
+<script src="js/views.js"></script>
+<script src="js/pdf-handler.js"></script>
+<script src="js/ocr.js"></script>
+<script src="js/export.js"></script>
+<script src="js/page-settings.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
